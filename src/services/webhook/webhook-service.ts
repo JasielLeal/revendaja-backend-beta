@@ -128,7 +128,7 @@ export class WebhookService {
     // SOLUÇÃO: Buscar o customer no Stripe para pegar o email
     console.log("🔍 Buscando detalhes do customer no Stripe...");
     const customer = await stripe.customers.retrieve(customerId);
-    
+
     if (customer.deleted) {
       console.error("❌ ERRO: Customer foi deletado no Stripe");
       return;
@@ -147,7 +147,9 @@ export class WebhookService {
     const user = await this.userRepository.findByEmail(customerEmail);
 
     if (!user) {
-      console.error(`❌ ERRO: Usuário não encontrado para email: ${customerEmail}`);
+      console.error(
+        `❌ ERRO: Usuário não encontrado para email: ${customerEmail}`
+      );
       return;
     }
 
