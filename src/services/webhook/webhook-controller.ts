@@ -60,10 +60,15 @@ export async function WebhookController(app: FastifyTypeInstance) {
 
         if (raw) {
           body = raw;
-          console.log("📦 Body type: raw Buffer (from content parser), tamanho:",
-            Buffer.isBuffer(body) ? body.length : String(body).length);
+          console.log(
+            "📦 Body type: raw Buffer (from content parser), tamanho:",
+            Buffer.isBuffer(body) ? body.length : String(body).length
+          );
           try {
-            console.log("📄 Body content preview:", JSON.stringify(JSON.parse(raw.toString("utf8")), null, 2));
+            console.log(
+              "📄 Body content preview:",
+              JSON.stringify(JSON.parse(raw.toString("utf8")), null, 2)
+            );
           } catch (e) {
             console.log("⚠️ Não foi possível parsear raw body para preview");
           }
@@ -77,7 +82,10 @@ export async function WebhookController(app: FastifyTypeInstance) {
             console.log("📦 Body type: String, tamanho:", body.length);
           } else {
             body = JSON.stringify(request.body);
-            console.log("📦 Body type: JSON stringified, tamanho:", body.length);
+            console.log(
+              "📦 Body type: JSON stringified, tamanho:",
+              body.length
+            );
             console.log(
               "📄 Body content preview:",
               JSON.stringify(request.body, null, 2)
