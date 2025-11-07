@@ -125,6 +125,41 @@ export class WebhookService {
       return;
     }
 
+    // SOLUÇÃO: Buscar o customer no Stripe para pegar o email
+    console.log("🔍 Buscando detalhes do customer no Stripe...");
+    const customer = await stripe.customers.retrieve(customerId);
+    
+    if (customer.deleted) {
+      console.error("❌ ERRO: Customer foi deletado no Stripe");
+      return;
+    }
+
+    const customerEmail = (customer as Stripe.Customer).email;
+    console.log("📧 Email do customer:", customerEmail);
+
+    if (!customerEmail) {
+      console.error("❌ ERRO: Customer não tem email");
+      return;
+    }
+
+    // Buscar usuário pelo email ao invés do stripeCustomerId
+    console.log("🔍 Buscando usuário no banco pelo email...");
+    const user = await this.userRepository.findByEmail(customerEmail);
+
+    if (!user) {
+      console.error(`❌ ERRO: Usuário não encontrado para email: ${customerEmail}`);
+      return;
+    }
+
+    console.log("✅ Usuário encontrado:", user.email, "ID:", user.id);
+
+    // Aproveitar para salvar o stripeCustomerId se não estiver salvo
+    if (!user.stripeCustomerId) {
+      console.log("💾 Salvando stripeCustomerId no usuário...");
+      await this.userRepository.updateStripeCustomerId(user.id, customerId);
+      console.log("✅ stripeCustomerId salvo:", customerId);
+    }
+
     // Para invoices, vamos buscar as subscriptions ativas do customer
     console.log("🔍 Buscando subscriptions ativas do customer...");
     const subscriptions = await stripe.subscriptions.list({
@@ -142,8 +177,8 @@ export class WebhookService {
         "✅ Atualizando plano com primeira subscription ativa:",
         subscriptions.data[0].id
       );
-      // Atualiza com a primeira subscription ativa
-      await this.updateUserPlan(customerId, subscriptions.data[0]);
+      // Atualiza com a primeira subscription ativa - usando o user encontrado
+      await this.updateUserPlanWithUser(user, subscriptions.data[0]);
     } else {
       console.log("⚠️ Nenhuma subscription ativa encontrada para o customer");
     }
@@ -203,6 +238,7 @@ export class WebhookService {
 
     // Encontra o usuário pelo Stripe Customer ID
     console.log("🔍 Buscando usuário no banco de dados...");
+
     const user = await this.userRepository.findByStripeCustomerId(customerId);
 
     if (!user) {
@@ -235,6 +271,38 @@ export class WebhookService {
       `✅ SUCCESS: Usuário ${user.email} teve o plano atualizado para: ${planName}`
     );
     console.log("✅ updateUserPlan finalizado");
+  }
+
+  private async updateUserPlanWithUser(
+    user: any,
+    subscription: Stripe.Subscription
+  ) {
+    console.log("🔄 INICIANDO: updateUserPlanWithUser");
+    console.log("👤 Usuário:", user.email, "ID:", user.id);
+    console.log("📋 Subscription ID:", subscription.id);
+    console.log("📊 Status da subscription:", subscription.status);
+
+    // Pega o primeiro item da subscription (assumindo um produto por subscription)
+    const subscriptionItem = subscription.items.data[0];
+    const priceId = subscriptionItem.price.id;
+
+    console.log("💰 Price ID da subscription:", priceId);
+
+    // Mapeia os Price IDs do Stripe para nomes de planos
+    const planMapping = this.getPlanMapping();
+    const planName = planMapping[priceId] || "Free";
+
+    console.log("📦 Plano mapeado:", planName);
+    console.log("🗺️ Mapping disponível:", JSON.stringify(planMapping, null, 2));
+
+    // Atualiza o plano do usuário
+    console.log("💾 Atualizando plano no banco de dados...");
+    await this.userRepository.updatePlan(user.id, planName);
+
+    console.log(
+      `✅ SUCCESS: Usuário ${user.email} teve o plano atualizado para: ${planName}`
+    );
+    console.log("✅ updateUserPlanWithUser finalizado");
   }
 
   private getPlanMapping(): Record<string, string> {

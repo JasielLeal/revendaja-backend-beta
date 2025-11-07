@@ -52,45 +52,22 @@ export async function WebhookController(app: FastifyTypeInstance) {
             .send({ error: "Missing stripe-signature header" });
         }
 
-        // Para webhooks do Stripe, precisamos do raw body. We prefer the rawBody
-        // attached by the content parser (see server.ts). If not present, fall back
-        // to the parsed body but note the risk to signature verification.
+        // Para webhooks do Stripe, precisamos do raw body
         let body: string | Buffer;
-        const raw = (request as any).rawBody as Buffer | undefined;
 
-        if (raw) {
-          body = raw;
-          console.log(
-            "📦 Body type: raw Buffer (from content parser), tamanho:",
-            Buffer.isBuffer(body) ? body.length : String(body).length
-          );
-          try {
-            console.log(
-              "📄 Body content preview:",
-              JSON.stringify(JSON.parse(raw.toString("utf8")), null, 2)
-            );
-          } catch (e) {
-            console.log("⚠️ Não foi possível parsear raw body para preview");
-          }
+        if (request.body instanceof Buffer) {
+          body = request.body;
+          console.log("📦 Body type: Buffer, tamanho:", body.length);
+        } else if (typeof request.body === "string") {
+          body = request.body;
+          console.log("📦 Body type: String, tamanho:", body.length);
         } else {
-          // fallback - less reliable for signature verification
-          if (request.body instanceof Buffer) {
-            body = request.body;
-            console.log("📦 Body type: Buffer, tamanho:", body.length);
-          } else if (typeof request.body === "string") {
-            body = request.body;
-            console.log("📦 Body type: String, tamanho:", body.length);
-          } else {
-            body = JSON.stringify(request.body);
-            console.log(
-              "📦 Body type: JSON stringified, tamanho:",
-              body.length
-            );
-            console.log(
-              "📄 Body content preview:",
-              JSON.stringify(request.body, null, 2)
-            );
-          }
+          body = JSON.stringify(request.body);
+          console.log("📦 Body type: JSON stringified, tamanho:", body.length);
+          console.log(
+            "📄 Body content preview:",
+            JSON.stringify(request.body, null, 2)
+          );
         }
 
         console.log("🔄 Iniciando processamento do webhook...");
