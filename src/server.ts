@@ -22,6 +22,24 @@ const app = fastify().withTypeProvider<ZodTypeProvider>();
 
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
+// Capture raw request body for routes that need it (Stripe webhooks).
+// We parse JSON as buffer, attach it to request.rawBody, and still return the parsed object
+// so other routes keep working normally.
+app.addContentTypeParser(
+  "application/json",
+  { parseAs: "buffer" },
+  (request, payload, done) => {
+    try {
+      // payload is a Buffer because of parseAs: 'buffer'
+      // attach raw body for later use
+      (request as any).rawBody = payload;
+      const parsed = JSON.parse(payload.toString("utf8"));
+      done(null, parsed);
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  }
+);
 app.register(fastifyCors, {
   origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
