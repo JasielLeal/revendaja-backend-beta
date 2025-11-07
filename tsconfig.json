@@ -3,7 +3,7 @@
     "outDir": "./dist",
     "target": "es2021",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
