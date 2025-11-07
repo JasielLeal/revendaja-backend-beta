@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(uuid())
+  name             String?
+  email            String    @unique
+  password         String
+  tokenAccess      String?
+  role             String    @default("Member")
+  plan             String    @default("Free")
+  stripeCustomerId String?
+  emailVerified    Boolean   @default(false)
+  firstAccess      Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  stores           Store[]
+  @@map("users")
+}
+
+model Catalog {
+  id             Int             @id @default(autoincrement())
+  name           String
+  normalPrice    Float
+  suggestedPrice Float
+  category       String
+  barcode        String?
+  imgUrl         String?
+  brand          String?
+  company        String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  storeProducts  StoreProduct[]
+  @@map("catalog")
+}
+
+model Store {
+  id            String          @id @default(uuid())
+  name          String          @unique
+  subdomain     String          @unique
+  address       String
+  phone         String?
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade )
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  storeProducts StoreProduct[]
+  @@map("stores")
+  Order         Order[]
+}
+
+
+model StoreProduct {
+  id           String       @id @default(uuid())
+  name         String
+  price        Float
+  quantity     Int          @default(0)
+
+  // Para produtos do catálogo
+  catalogPrice Float?
+  catalogId    Int?
+
+  category     String?
+  imgUrl       String?
+  status       String?      @default("Active")
+  brand        String
+  company      String
+  storeId      String
+  store        Store       @relation(fields: [storeId], references: [id], onDelete: Cascade )
+  catalog      Catalog?    @relation(fields: [catalogId], references: [id])
+
+  type         String       @default("Catalog")
+
+  // Vendas deste produto
+  orderItems   OrderItem[]
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([storeId, catalogId])
+  @@map("store_products")
+}
+
+model Order {
+  id            String       @id @default(uuid())
+  orderNumber   String       @unique
+  status        String       @default("Approved")
+  total         Float
+  customerName  String?
+  customerPhone String?
+  paymentMethod String       @default("Pix")
+  storeId       String
+  store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  items         OrderItem[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id                                             String        @id @default(uuid())
+  quantity                                       Int
+  price       Float    // Preço na hora da venda
+  name        String   // Nome na hora da venda
+  imgUrl                                         String
+
+  // SEMPRE vinculado a um StoreProduct (pode ser CATALOG ou CUSTOM)
+  storeProductId                                 String
+  storeProduct                                   StoreProduct @relation(fields: [storeProductId], references: [id], onDelete: Cascade)
+
+  orderId                                        String
+  order                                          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt                                      DateTime      @default(now())
+  updatedAt                                      DateTime      @updatedAt
+
+  @@map("order_items")
+}
