@@ -97,8 +97,10 @@ export class UserPrismaRepository implements UserRepository {
     userId: string,
     stripeCustomerId: string
   ): Promise<void> {
-    console.log(`💾 REPOSITORY: Atualizando stripeCustomerId para userId ${userId} -> ${stripeCustomerId}`);
-    
+    console.log(
+      `💾 REPOSITORY: Atualizando stripeCustomerId para userId ${userId} -> ${stripeCustomerId}`
+    );
+
     await prisma.user.update({
       where: {
         id: userId,
@@ -107,7 +109,7 @@ export class UserPrismaRepository implements UserRepository {
         stripeCustomerId,
       },
     });
-    
+
     console.log(`✅ REPOSITORY: stripeCustomerId atualizado com sucesso`);
   }
 }

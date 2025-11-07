@@ -22,7 +22,7 @@ export class PaymentService {
     cancelUrl: string
   ) {
     console.log("🎬 INICIANDO createCheckoutSession para userId:", userId);
-    
+
     const user = await this.userRepository.findById(userId);
 
     if (!user) {
@@ -30,16 +30,24 @@ export class PaymentService {
       throw new AppError("User not found", 404);
     }
 
-    console.log("✅ Usuário encontrado:", user.email, "stripeCustomerId atual:", user.stripeCustomerId || "NULL");
+    console.log(
+      "✅ Usuário encontrado:",
+      user.email,
+      "stripeCustomerId atual:",
+      user.stripeCustomerId || "NULL"
+    );
 
     let customerId = user.stripeCustomerId;
 
-    console.log("💳 DEBUG: Stripe Customer ID atual do usuário:", customerId || "❌ Nulo");
+    console.log(
+      "💳 DEBUG: Stripe Customer ID atual do usuário:",
+      customerId || "❌ Nulo"
+    );
 
     // Se o usuário não tem um Stripe Customer ID, cria um
     if (!customerId) {
       console.log("🆕 Criando novo customer no Stripe para:", user.email);
-      
+
       const customer = await stripe.customers.create({
         email: user.email,
         name: user.name,
@@ -56,11 +64,13 @@ export class PaymentService {
       try {
         await this.userRepository.updateStripeCustomerId(userId, customerId);
         console.log("✅ stripeCustomerId salvo no banco para userId:", userId);
-        
+
         // Verificar se realmente foi salvo
         const updatedUser = await this.userRepository.findById(userId);
-        console.log("🔍 Verificação pós-update - stripeCustomerId:", updatedUser?.stripeCustomerId || "AINDA NULL!");
-        
+        console.log(
+          "🔍 Verificação pós-update - stripeCustomerId:",
+          updatedUser?.stripeCustomerId || "AINDA NULL!"
+        );
       } catch (error) {
         console.error("❌ ERRO ao salvar stripeCustomerId:", error);
         throw error;
