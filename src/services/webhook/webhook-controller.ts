@@ -31,14 +31,20 @@ export async function WebhookController(app: FastifyTypeInstance) {
       try {
         console.log("🔔 WEBHOOK STRIPE RECEBIDO!");
         console.log("📅 Timestamp:", new Date().toISOString());
-        console.log("🌐 Headers completos:", JSON.stringify(request.headers, null, 2));
+        console.log(
+          "🌐 Headers completos:",
+          JSON.stringify(request.headers, null, 2)
+        );
         console.log("📝 Method:", request.method);
         console.log("🔗 URL:", request.url);
 
         const signature = request?.headers["stripe-signature"] as string;
 
-        console.log("🔐 Stripe Signature:", signature ? "✅ Presente" : "❌ Ausente");
-        
+        console.log(
+          "🔐 Stripe Signature:",
+          signature ? "✅ Presente" : "❌ Ausente"
+        );
+
         if (!signature) {
           console.error("❌ ERRO: Missing stripe-signature header");
           return reply
@@ -58,7 +64,10 @@ export async function WebhookController(app: FastifyTypeInstance) {
         } else {
           body = JSON.stringify(request.body);
           console.log("📦 Body type: JSON stringified, tamanho:", body.length);
-          console.log("📄 Body content preview:", JSON.stringify(request.body, null, 2));
+          console.log(
+            "📄 Body content preview:",
+            JSON.stringify(request.body, null, 2)
+          );
         }
 
         console.log("🔄 Iniciando processamento do webhook...");
@@ -72,11 +81,16 @@ export async function WebhookController(app: FastifyTypeInstance) {
         return reply.status(200).send(result);
       } catch (error) {
         console.error("❌ ERRO NO WEBHOOK:", error);
-        console.error("📍 Stack trace:", error instanceof Error ? error.stack : 'N/A');
+        console.error(
+          "📍 Stack trace:",
+          error instanceof Error ? error.stack : "N/A"
+        );
 
         if (error instanceof AppError) {
           const statusCode = error.statusCode as 400 | 500;
-          console.error(`🚨 AppError - Status: ${statusCode}, Message: ${error.message}`);
+          console.error(
+            `🚨 AppError - Status: ${statusCode}, Message: ${error.message}`
+          );
           return reply.status(statusCode).send({ error: error.message });
         }
 

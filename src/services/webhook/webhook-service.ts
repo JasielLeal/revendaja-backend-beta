@@ -79,7 +79,7 @@ export class WebhookService {
   ) {
     console.log("💳 INICIANDO: handleCheckoutSessionCompleted");
     console.log("🆔 Session ID:", session.id);
-    
+
     const customerId = session.customer as string;
     const subscriptionId = session.subscription as string;
 
@@ -95,19 +95,24 @@ export class WebhookService {
     if (subscriptionId) {
       console.log("🔍 Buscando detalhes da subscription...");
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      console.log("📋 Subscription encontrada:", subscription.id, "Status:", subscription.status);
+      console.log(
+        "📋 Subscription encontrada:",
+        subscription.id,
+        "Status:",
+        subscription.status
+      );
       await this.updateUserPlan(customerId, subscription);
     } else {
       console.log("ℹ️ Nenhuma subscription associada ao checkout");
     }
-    
+
     console.log("✅ handleCheckoutSessionCompleted finalizado");
   }
 
   private async handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     console.log("💰 INICIANDO: handleInvoicePaymentSucceeded");
     console.log("🧾 Invoice ID:", invoice.id);
-    
+
     const customerId =
       typeof invoice.customer === "string"
         ? invoice.customer
@@ -127,16 +132,22 @@ export class WebhookService {
       status: "active",
     });
 
-    console.log("📋 Subscriptions ativas encontradas:", subscriptions.data.length);
+    console.log(
+      "📋 Subscriptions ativas encontradas:",
+      subscriptions.data.length
+    );
 
     if (subscriptions.data.length > 0) {
-      console.log("✅ Atualizando plano com primeira subscription ativa:", subscriptions.data[0].id);
+      console.log(
+        "✅ Atualizando plano com primeira subscription ativa:",
+        subscriptions.data[0].id
+      );
       // Atualiza com a primeira subscription ativa
       await this.updateUserPlan(customerId, subscriptions.data[0]);
     } else {
       console.log("⚠️ Nenhuma subscription ativa encontrada para o customer");
     }
-    
+
     console.log("✅ handleInvoicePaymentSucceeded finalizado");
   }
 
@@ -144,10 +155,10 @@ export class WebhookService {
     console.log("🔄 INICIANDO: handleSubscriptionUpdated");
     console.log("📋 Subscription ID:", subscription.id);
     console.log("📊 Status:", subscription.status);
-    
+
     const customerId = subscription.customer as string;
     console.log("👤 Customer ID:", customerId);
-    
+
     await this.updateUserPlan(customerId, subscription);
     console.log("✅ handleSubscriptionUpdated finalizado");
   }
@@ -155,7 +166,7 @@ export class WebhookService {
   private async handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     console.log("❌ INICIANDO: handleSubscriptionDeleted");
     console.log("📋 Subscription ID:", subscription.id);
-    
+
     const customerId = subscription.customer as string;
     console.log("👤 Customer ID:", customerId);
 
@@ -164,7 +175,9 @@ export class WebhookService {
     const user = await this.userRepository.findByStripeCustomerId(customerId);
 
     if (!user) {
-      console.error(`❌ ERRO: Usuário não encontrado para customer ID: ${customerId}`);
+      console.error(
+        `❌ ERRO: Usuário não encontrado para customer ID: ${customerId}`
+      );
       return;
     }
 
@@ -173,7 +186,9 @@ export class WebhookService {
     // Volta para o plano gratuito
     console.log("💾 Revertendo para plano Free...");
     await this.userRepository.updatePlan(user.id, "Free");
-    console.log(`✅ SUCCESS: Usuário ${user.email} teve subscription cancelada, revertido para plano Free`);
+    console.log(
+      `✅ SUCCESS: Usuário ${user.email} teve subscription cancelada, revertido para plano Free`
+    );
     console.log("✅ handleSubscriptionDeleted finalizado");
   }
 
@@ -185,13 +200,15 @@ export class WebhookService {
     console.log("👤 Customer ID recebido:", customerId);
     console.log("📋 Subscription ID:", subscription.id);
     console.log("📊 Status da subscription:", subscription.status);
-    
+
     // Encontra o usuário pelo Stripe Customer ID
     console.log("🔍 Buscando usuário no banco de dados...");
     const user = await this.userRepository.findByStripeCustomerId(customerId);
 
     if (!user) {
-      console.error(`❌ ERRO: Usuário não encontrado para customer ID: ${customerId}`);
+      console.error(
+        `❌ ERRO: Usuário não encontrado para customer ID: ${customerId}`
+      );
       return;
     }
 
@@ -214,7 +231,9 @@ export class WebhookService {
     console.log("💾 Atualizando plano no banco de dados...");
     await this.userRepository.updatePlan(user.id, planName);
 
-    console.log(`✅ SUCCESS: Usuário ${user.email} teve o plano atualizado para: ${planName}`);
+    console.log(
+      `✅ SUCCESS: Usuário ${user.email} teve o plano atualizado para: ${planName}`
+    );
     console.log("✅ updateUserPlan finalizado");
   }
 
