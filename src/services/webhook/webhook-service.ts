@@ -168,9 +168,7 @@ export class WebhookService {
     // Mapeia os Price IDs do Stripe para os nomes dos planos
     // Você deve substituir pelos seus Price IDs reais do Stripe
     return {
-      [process.env.STRIPE_PRICE_ID_BASIC || ""]: "Basic",
-      [process.env.STRIPE_PRICE_ID_PREMIUM || ""]: "Premium",
-      [process.env.STRIPE_PRICE_ID_ENTERPRISE || ""]: "Enterprise",
+      [process.env.STRIPE_PRICE_ID_STARTER || ""]: "Starter",
       // Adicione mais planos conforme necessário
     };
   }
