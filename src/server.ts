@@ -20,8 +20,7 @@ import { PaymentController } from "./services/webhook/payment-controller";
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
 
-app.setValidatorCompiler(validatorCompiler);
-app.setSerializerCompiler(serializerCompiler);
+// IMPORTANTE: Registrar o content parser ANTES de tudo
 // Capture raw request body for routes that need it (Stripe webhooks).
 // We parse JSON as buffer, attach it to request.rawBody, and still return the parsed object
 // so other routes keep working normally.
@@ -40,6 +39,9 @@ app.addContentTypeParser(
     }
   }
 );
+
+app.setValidatorCompiler(validatorCompiler);
+app.setSerializerCompiler(serializerCompiler);
 app.register(fastifyCors, {
   origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
