@@ -6,9 +6,13 @@ import z from "zod";
 import { verifyToken } from "@/middlewares/verify-token";
 
 export async function CatalogController(app: FastifyTypeInstance) {
+  
+
   const catalogRepository = new CatalogPrismaRepository();
   const storeRepository = new StorePrismaRepository();
   const catalogService = new CatalogService(catalogRepository, storeRepository);
+
+ 
 
   app.get(
     "/catalog/find-all",
@@ -17,8 +21,18 @@ export async function CatalogController(app: FastifyTypeInstance) {
         tags: ["Catalog"],
         description: "Find all catalog products with pagination",
         querystring: z.object({
-          page: z.number().min(1).default(1),
-          pageSize: z.number().min(1).max(100).default(10),
+          page: z
+            .string()
+            .optional()
+            .default("1")
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().min(1)),
+          pageSize: z
+            .string()
+            .optional()
+            .default("10")
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().min(1).max(100)),
         }),
         response: {
           200: z.object({
@@ -28,6 +42,8 @@ export async function CatalogController(app: FastifyTypeInstance) {
                 name: z.string(),
                 price: z.number(),
                 image: z.string().nullable().optional(),
+                brand: z.string().nullable().optional(),
+                company: z.string().nullable().optional(),
                 // adicione outros campos se quiser
               })
             ),
@@ -45,14 +61,15 @@ export async function CatalogController(app: FastifyTypeInstance) {
       preHandler: [verifyToken],
     },
     async (req, reply) => {
+     
       try {
         const { page, pageSize } = req.query;
 
         const userId = req.user.id;
 
-        console.log(userId);
-
         const products = await catalogService.getAll(userId, page, pageSize);
+      
+        console.log(products)
 
         return reply.status(200).send({
           products: products.map((product) => ({
@@ -60,13 +77,13 @@ export async function CatalogController(app: FastifyTypeInstance) {
             name: product.name,
             price: product.normalPrice,
             image: product.imgUrl,
+            brand: product.brand,
+            company: product.company,
           })),
           page,
           pageSize,
         });
       } catch (error: any) {
-        console.log("❌ ERRO DETALHADO:", error);
-        console.log("📋 Stack:", error.stack);
 
         if (error.message.includes("not found")) {
           return reply.status(400).send({

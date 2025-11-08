@@ -152,10 +152,6 @@ export class OrderPrismaRepository implements OrderRepository {
       take: limit,
     });
 
-    console.log("WHERE:", JSON.stringify(where, null, 2));
-    console.log("skip:", (page - 1) * limit);
-    console.log("take:", limit);
-
     // conta todos os pedidos do filtro (para a paginação)
     const total = await prisma.order.count({ where });
 

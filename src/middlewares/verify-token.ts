@@ -15,8 +15,9 @@ export async function verifyToken(req: FastifyRequest, reply: FastifyReply) {
       id: string;
       email: string;
     };
+
     req.user = decoded; // <-- injeta o user no request
-  } catch {
+  } catch (error) {
     return reply.status(401).send({ error: "Token inválido" });
   }
 }

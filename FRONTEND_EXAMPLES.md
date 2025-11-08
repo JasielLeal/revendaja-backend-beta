@@ -308,7 +308,7 @@ export function usePayments() {
           });
 
           const userData = await response.json();
-          console.log("Plano atualizado para:", userData.plan);
+       
         } catch (error) {
           console.error("Erro ao atualizar dados:", error);
         }

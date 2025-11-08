@@ -20,6 +20,7 @@ import { PaymentController } from "./services/webhook/payment-controller";
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
 
+
 // IMPORTANTE: Registrar o content parser ANTES de tudo
 // Capture raw request body for routes that need it (Stripe webhooks).
 // We parse JSON as buffer, attach it to request.rawBody, and still return the parsed object
