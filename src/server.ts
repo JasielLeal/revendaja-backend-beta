@@ -9,7 +9,7 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import { UserController } from "./services/user/user-controller";
-import { ZodTypeProvider } from "fastify-type-provider-zod/dist/esm";
+import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { ProductController } from "./services/product/product-controller";
 import { StoreController } from "./services/store/store-controller";
 import { StoreProductController } from "./services/store-product/store-product-controller";

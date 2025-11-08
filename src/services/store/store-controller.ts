@@ -55,4 +55,48 @@ export async function StoreController(app: FastifyTypeInstance) {
       }
     }
   );
+
+  app.get(
+    "/stores/me",
+    {
+      schema: {
+        tags: ["Stores"],
+        description: "Get store by user ID",
+        response: {
+          200: z.object({
+            id: z.string().optional(),
+            name: z.string(),
+            address: z.string(),
+            phone: z.string(),
+            subdomain: z.string(),
+            userId: z.string(),
+          }),
+          404: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        const userId = req.user.id;
+        const store = await storeService.findStoreByUserId(userId);
+
+        if (!store) {
+          return reply.status(404).send({ error: "Store not found" });
+        }
+        return reply.status(200).send({
+          id: store.id,
+          name: store.name,
+          address: store.address,
+          phone: store.phone,
+          subdomain: store.subdomain ?? "",
+          userId: store.userId,
+        });
+      } catch (err: any) {
+        return reply.status(err.statusCode || 500).send({ error: err.message });
+      }
+    }
+  );
 }

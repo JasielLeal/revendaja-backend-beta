@@ -31,4 +31,10 @@ export class StoreService {
       subdomain: subdomain,
     });
   }
+
+  async findStoreByUserId(userId: string): Promise<StoreEntity | null> {
+    const store = await this.storeRepository.findyStoreByUserId(userId);
+
+    return store;
+  }
 }
