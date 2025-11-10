@@ -22,10 +22,14 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     });
   }
 
-  async findbyCatalogId(catalogId: number): Promise<StoreProductEntity | null> {
+  async findbyCatalogId(
+    catalogId: number,
+    storeId: string
+  ): Promise<StoreProductEntity | null> {
     const product = await prisma.storeProduct.findFirst({
       where: {
         catalogId,
+        storeId,
       },
     });
 
@@ -44,6 +48,7 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     // Busca produtos com filtro opcional pelo nome
     const where: any = {
       storeId,
+      // ✅ Removido filtro de status - agora lista TODOS os produtos (ativos e inativos)
     };
 
     if (query) {
@@ -92,6 +97,32 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
       },
       data: {
         quantity: newQuantity,
+      },
+    });
+
+    return;
+  }
+
+  async updateStatus(productId: string, status: string): Promise<void> {
+    await prisma.storeProduct.update({
+      where: {
+        id: productId,
+      },
+      data: {
+        status: status,
+      },
+    });
+
+    return;
+  }
+
+  async updatePrice(productId: string, newPrice: number): Promise<void> {
+    await prisma.storeProduct.update({
+      where: {
+        id: productId,
+      },
+      data: {
+        price: newPrice,
       },
     });
 

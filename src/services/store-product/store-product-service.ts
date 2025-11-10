@@ -36,7 +36,8 @@ export class StoreProductService {
       data.price != null ? data.price : catalogProduct.suggestedPrice;
 
     const storeProductExist = await this.storeProductRepository.findbyCatalogId(
-      data.catalogId
+      data.catalogId,
+      store.id
     );
 
     if (storeProductExist) {
@@ -79,5 +80,56 @@ export class StoreProductService {
     );
 
     return products;
+  }
+
+  async updateProduct(
+    productId: string,
+    userId: string,
+    updates: {
+      price?: number;
+      quantity?: number;
+      status?: string;
+    }
+  ): Promise<string[]> {
+    // Verificar se a loja pertence ao usuário
+    const store = await this.storeRepository.findyStoreByUserId(userId);
+
+    if (!store) {
+      throw new Error("Store not found");
+    }
+
+    // Verificar se o produto existe e pertence à loja do usuário
+    const product = await this.storeProductRepository.findById(productId);
+
+    if (!product) {
+      throw new Error("Product not found");
+    }
+
+    if (product.storeId !== store.id) {
+      throw new Error("Product does not belong to your store");
+    }
+
+    // Aplicar atualizações parciais
+    const updatedFields: string[] = [];
+
+    if (updates.price !== undefined) {
+      await this.storeProductRepository.updatePrice(productId, updates.price);
+      updatedFields.push("price");
+    }
+
+    if (updates.quantity !== undefined) {
+      await this.storeProductRepository.updatedStock(
+        productId,
+        updates.quantity
+      );
+      updatedFields.push("quantity");
+    }
+
+    if (updates.status !== undefined) {
+      await this.storeProductRepository.updateStatus(productId, updates.status);
+      updatedFields.push("status");
+    }
+
+    return updatedFields;
   }
 }

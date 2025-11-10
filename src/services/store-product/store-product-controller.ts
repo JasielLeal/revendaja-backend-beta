@@ -175,9 +175,97 @@ export async function StoreProductController(app: FastifyTypeInstance) {
       } catch (error: any) {
         console.log("❌ ERRO DETALHADO:", error);
         console.log("📋 Stack:", error.stack);
-        
+
         return reply.status(500).send({
           error: "Internal server error: " + error.message,
+        });
+      }
+    }
+  );
+
+  // Rota unificada para atualizar produto (preço, quantidade, status)
+  app.patch(
+    "/store-product/:id",
+    {
+      schema: {
+        tags: ["Store-Products"],
+        description:
+          "Update store product (price, quantity, status) - all fields optional",
+        params: z.object({
+          id: z.string().uuid(),
+        }),
+        body: z.object({
+          price: z.number().min(0.01).optional(),
+          quantity: z.number().min(0).optional(),
+          status: z.enum(["Active", "Inactive"]).optional(),
+        }),
+        response: {
+          200: z.object({
+            message: z.string(),
+            updatedFields: z.array(z.string()),
+          }),
+          400: z.object({
+            error: z.string(),
+          }),
+          404: z.object({
+            error: z.string(),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        const { id } = req.params;
+        const { price, quantity, status } = req.body;
+        const userId = req.user.id;
+
+        // Validar se pelo menos um campo foi enviado
+        if (
+          price === undefined &&
+          quantity === undefined &&
+          status === undefined
+        ) {
+          return reply.status(400).send({
+            error:
+              "Pelo menos um campo deve ser informado (price, quantity ou status)",
+          });
+        }
+
+        const updatedFields = await storeProductService.updateProduct(
+          id,
+          userId,
+          {
+            price,
+            quantity,
+            status,
+          }
+        );
+
+        return reply.status(200).send({
+          message: "Produto atualizado com sucesso",
+          updatedFields,
+        });
+      } catch (error: any) {
+        console.log("❌ ERRO ao atualizar produto:", error);
+
+        if (error.message.includes("not found")) {
+          return reply.status(404).send({
+            error: "Produto não encontrado",
+          });
+        }
+
+        if (error.message.includes("does not belong")) {
+          return reply.status(400).send({
+            error: error.message,
+          });
+        }
+
+        return reply.status(500).send({
+          error: "Erro interno: " + error.message,
         });
       }
     }
