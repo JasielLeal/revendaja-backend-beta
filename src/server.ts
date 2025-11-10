@@ -17,9 +17,9 @@ import { OrderController } from "./services/order/order-controller";
 import { CatalogController } from "./services/catalog/catalog-controller";
 import { WebhookController } from "./services/webhook/webhook-controller";
 import { PaymentController } from "./services/webhook/payment-controller";
+import { StoreWebController } from "./services/store-web/store-web-controller";
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
-
 
 // IMPORTANTE: Registrar o content parser ANTES de tudo
 // Capture raw request body for routes that need it (Stripe webhooks).
@@ -78,9 +78,13 @@ app.register(OrderController, { prefix: "/api" });
 app.register(CatalogController, { prefix: "/api" });
 app.register(WebhookController, { prefix: "/api" });
 app.register(PaymentController, { prefix: "/api" });
+app.register(StoreWebController, { prefix: "/api/web" });
 
 app.register(fastifySwaggerUi, {
   routePrefix: "/docs",
+  uiConfig: {
+    persistAuthorization: true,
+  },
 });
 
 const port = Number(process.env.PORT) || 3333;

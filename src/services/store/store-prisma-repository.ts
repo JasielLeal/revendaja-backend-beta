@@ -31,4 +31,12 @@ export class StorePrismaRepository implements StoreRepository {
     });
     return store;
   }
+
+  async findBySubdomain(subdomain: string): Promise<StoreEntity | null> {
+    const store = await prisma.store.findUnique({
+      where: { subdomain },
+    });
+
+    return store;
+  }
 }
