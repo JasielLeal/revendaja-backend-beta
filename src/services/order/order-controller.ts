@@ -346,4 +346,138 @@ export async function OrderController(app: FastifyTypeInstance) {
       }
     }
   );
+
+  // Alterar status da order
+  app.patch(
+    "/orders/:id/status",
+    {
+      schema: {
+        tags: ["Orders"],
+        description: "Update order status",
+        params: z.object({
+          id: z.string().uuid(),
+        }),
+        body: z.object({
+          status: z.enum(["pending", "approved", "cancelled", "delivered"]),
+        }),
+        response: {
+          200: z.object({
+            message: z.string(),
+            order: z.object({
+              id: z.string(),
+              status: z.string(),
+            }),
+          }),
+          400: z.object({
+            error: z.string(),
+          }),
+          404: z.object({
+            error: z.string(),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const userId = req.user.id;
+
+        const updatedOrder = await orderService.updateOrderStatus(
+          id,
+          userId,
+          status
+        );
+
+        return reply.status(200).send({
+          message: "Status da order atualizado com sucesso",
+          order: {
+            id: updatedOrder.id,
+            status: updatedOrder.status,
+          },
+        });
+      } catch (error: any) {
+        console.log("❌ ERRO ao alterar status da order:", error);
+
+        if (error.message.includes("not found")) {
+          return reply.status(404).send({
+            error: "Order não encontrada",
+          });
+        }
+
+        if (error.message.includes("not belong")) {
+          return reply.status(400).send({
+            error: "Order não pertence à sua loja",
+          });
+        }
+
+        return reply.status(500).send({
+          error: "Erro interno: " + error.message,
+        });
+      }
+    }
+  );
+
+  // Deletar order
+  app.delete(
+    "/orders/:id",
+    {
+      schema: {
+        tags: ["Orders"],
+        description: "Delete an order",
+        params: z.object({
+          id: z.string().uuid(),
+        }),
+        response: {
+          200: z.object({
+            message: z.string(),
+          }),
+          400: z.object({
+            error: z.string(),
+          }),
+          404: z.object({
+            error: z.string(),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        await orderService.deleteOrder(id, userId);
+
+        return reply.status(200).send({
+          message: "Order deletada com sucesso",
+        });
+      } catch (error: any) {
+        console.log("❌ ERRO ao deletar order:", error);
+
+        if (error.message.includes("not found")) {
+          return reply.status(404).send({
+            error: "Order não encontrada",
+          });
+        }
+
+        if (error.message.includes("not belong")) {
+          return reply.status(400).send({
+            error: "Order não pertence à sua loja",
+          });
+        }
+
+        return reply.status(500).send({
+          error: "Erro interno: " + error.message,
+        });
+      }
+    }
+  );
 }

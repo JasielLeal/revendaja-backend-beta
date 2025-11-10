@@ -24,4 +24,8 @@ export interface OrderRepository {
     search?: string,
     status?: string
   );
+
+  findById(orderId: string): Promise<OrderEntity | null>;
+  updateStatus(orderId: string, status: string): Promise<OrderEntity>;
+  delete(orderId: string): Promise<void>;
 }

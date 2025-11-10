@@ -165,4 +165,45 @@ export class OrderPrismaRepository implements OrderRepository {
       },
     };
   }
+
+  async findById(orderId: string): Promise<OrderEntity | null> {
+    const order = await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!order) {
+      return null;
+    }
+
+    return order as OrderEntity;
+  }
+
+  async updateStatus(orderId: string, status: string): Promise<OrderEntity> {
+    const updatedOrder = await prisma.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        status,
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    return updatedOrder as OrderEntity;
+  }
+
+  async delete(orderId: string): Promise<void> {
+    await prisma.order.delete({
+      where: {
+        id: orderId,
+      },
+    });
+  }
 }

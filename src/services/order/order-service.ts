@@ -190,4 +190,59 @@ export class OrderService {
       estimatedProfit,
     };
   }
+
+  async updateOrderStatus(
+    orderId: string,
+    userId: string,
+    newStatus: string
+  ): Promise<OrderEntity> {
+    // Verificar se a loja pertence ao usuário
+    const store = await this.storeRepository.findyStoreByUserId(userId);
+
+    if (!store) {
+      throw new Error("Store not found");
+    }
+
+    // Verificar se a order existe e pertence à loja do usuário
+    const order = await this.orderRepository.findById(orderId);
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    if (order.storeId !== store.id) {
+      throw new Error("Order does not belong to your store");
+    }
+
+    // Atualizar status da order
+    const updatedOrder = await this.orderRepository.updateStatus(
+      orderId,
+      newStatus
+    );
+
+    return updatedOrder;
+  }
+
+  async deleteOrder(orderId: string, userId: string): Promise<void> {
+    // Verificar se a loja pertence ao usuário
+    const store = await this.storeRepository.findyStoreByUserId(userId);
+
+    if (!store) {
+      throw new Error("Store not found");
+    }
+
+    // Verificar se a order existe e pertence à loja do usuário
+    const order = await this.orderRepository.findById(orderId);
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    if (order.storeId !== store.id) {
+      throw new Error("Order does not belong to your store");
+    }
+
+    // Deletar a order (vai deletar os itens em cascata)
+    await this.orderRepository.delete(orderId);
+  }
 }
