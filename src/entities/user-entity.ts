@@ -6,7 +6,6 @@ export class UserEntity {
   name?: string;
   email: string;
   password: string;
-  numberPhone: string;
   tokenAccess?: string;
   role?: string;
   plan?: string;

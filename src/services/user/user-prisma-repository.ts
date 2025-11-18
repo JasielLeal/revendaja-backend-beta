@@ -10,7 +10,6 @@ export class UserPrismaRepository implements UserRepository {
         name: data.name,
         email: data.email,
         password: data.password,
-        numberPhone: data.numberPhone,
         tokenAccess: data.tokenAccess,
       },
     });

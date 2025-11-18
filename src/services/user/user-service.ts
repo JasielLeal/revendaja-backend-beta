@@ -29,32 +29,14 @@ export class UserService {
       name: data.name,
       email: data.email,
       password: passwordHash,
-      numberPhone: data.numberPhone,
       tokenAccess: randomNumbersSix,
     });
 
-    // Enviar WhatsApp após criar o usuário
-    try {
-      console.log("🚀 Iniciando envio de WhatsApp...");
-      await sendWhatsappMessage(
-        data.numberPhone,
-        `Olá ${data.name}! 👋\n\nSua conta foi criada com sucesso no Revendaja!\n\nSeu código de verificação é: *${randomNumbersSix}*\n\nBem-vindo(a)! 🎉`
-      );
-      console.log("✅ WhatsApp enviado com sucesso!");
-    } catch (err: any) {
-      console.error("❌ Falha ao enviar WhatsApp:", err.message);
-      console.error("📋 Detalhes do erro:", err.response?.data || err);
-      // Não bloqueia a criação do usuário se o WhatsApp falhar
-    }
-
-    // sendEmail({
-    //   to: data.email,
-    //   subject: "Welcome to Odontly!",
-    //   html: sendVerificationEmail(
-    //     data.name,
-    //     `http://localhost:3000/verify-email?token=${tokenAccess}`
-    //   ),
-    // });
+    sendEmail({
+      to: data.email,
+      subject: "Bem-vindo ao Revendaja!",
+      html: sendVerificationEmail(data.name, randomNumbersSix),
+    });
 
     return;
   }
