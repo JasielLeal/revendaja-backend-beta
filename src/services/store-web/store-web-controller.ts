@@ -30,6 +30,8 @@ export async function StoreWebController(app: FastifyTypeInstance) {
             subdomain: z.string(),
             address: z.string(),
             phone: z.string().optional(),
+            primaryColor: z.string(),
+            bannerUrl: z.string().optional(),
             createdAt: z.string(),
             categories: z.array(z.string()),
             totalProducts: z.number(),
@@ -90,6 +92,8 @@ export async function StoreWebController(app: FastifyTypeInstance) {
           limit: z.string().optional(),
           orderBy: z.enum(["name", "price", "createdAt"]).optional(),
           orderDirection: z.enum(["asc", "desc"]).optional(),
+          // Novos filtros inspirados na rota privada
+          status: z.enum(["Active", "Inactive"]).optional().default("Active"),
         }),
         response: {
           200: z.object({
@@ -98,13 +102,17 @@ export async function StoreWebController(app: FastifyTypeInstance) {
                 id: z.string(),
                 name: z.string(),
                 price: z.number(),
+                quantity: z.number(),
                 category: z.string().optional(),
                 imgUrl: z.string().optional(),
                 brand: z.string(),
                 company: z.string(),
-                quantity: z.number(),
                 type: z.string(),
+                status: z.string(),
+                catalogPrice: z.number().optional(),
+                catalogId: z.number().optional(),
                 createdAt: z.string(),
+                updatedAt: z.string(),
               })
             ),
             pagination: z.object({
@@ -149,13 +157,17 @@ export async function StoreWebController(app: FastifyTypeInstance) {
           id: product.id!,
           name: product.name,
           price: product.price,
+          quantity: product.quantity,
           category: product.category,
           imgUrl: product.imgUrl,
           brand: product.brand,
           company: product.company,
-          quantity: product.quantity,
           type: product.type,
+          status: product.status || "Active",
+          catalogPrice: product.catalogPrice,
+          catalogId: product.catalogId,
           createdAt: product.createdAt.toISOString(),
+          updatedAt: product.updatedAt.toISOString(),
         }));
 
         return reply.status(200).send({
@@ -164,6 +176,107 @@ export async function StoreWebController(app: FastifyTypeInstance) {
         });
       } catch (error: any) {
         console.log("❌ ERRO ao buscar produtos da loja:", error);
+
+        if (error.message.includes("not found")) {
+          return reply.status(404).send({
+            error: "Loja não encontrada",
+          });
+        }
+
+        return reply.status(500).send({
+          error: "Erro interno: " + error.message,
+        });
+      }
+    }
+  );
+
+  // Nova rota: Listagem completa de produtos com paginação (similar à rota privada)
+  app.get(
+    "/store/:subdomain/products/list",
+    {
+      schema: {
+        tags: ["Store Web"],
+        description:
+          "Complete product listing with pagination (public version of /store-product)",
+        params: z.object({
+          subdomain: z.string().min(1),
+        }),
+        querystring: z.object({
+          page: z
+            .string()
+            .default("1")
+            .transform((val) => parseInt(val, 10)),
+          pageSize: z
+            .string()
+            .default("10")
+            .transform((val) => parseInt(val, 10)),
+          search: z.string().optional(),
+          category: z.string().optional(),
+          status: z.enum(["Active", "Inactive"]).optional().default("Active"),
+        }),
+        response: {
+          200: z.object({
+            data: z.array(
+              z.object({
+                id: z.string(),
+                name: z.string(),
+                price: z.number(),
+                quantity: z.number(),
+                brand: z.string(),
+                company: z.string(),
+                catalogPrice: z.number().optional(),
+                catalogId: z.number().optional(),
+                category: z.string().optional(),
+                imgUrl: z.string().optional(),
+                status: z.string(),
+                type: z.string(),
+                createdAt: z.string(),
+                updatedAt: z.string(),
+              })
+            ),
+            pagination: z.object({
+              page: z.number(),
+              pageSize: z.number(),
+              total: z.number(),
+              totalPages: z.number(),
+            }),
+          }),
+          404: z.object({
+            error: z.string().default("Store not found"),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const { subdomain } = req.params;
+        const { page, pageSize, search, category, status } = req.query;
+
+        const result = await storeWebService.getStoreProductsList(
+          subdomain,
+          page,
+          pageSize,
+          search,
+          category,
+          status
+        );
+
+        // Serializar datas
+        const serializedResult = {
+          ...result,
+          data: result.data.map((product) => ({
+            ...product,
+            createdAt: product.createdAt.toISOString(),
+            updatedAt: product.updatedAt.toISOString(),
+          })),
+        };
+
+        return reply.status(200).send(serializedResult);
+      } catch (error: any) {
+        console.log("❌ ERRO ao listar produtos da loja:", error);
 
         if (error.message.includes("not found")) {
           return reply.status(404).send({
@@ -209,6 +322,8 @@ export async function StoreWebController(app: FastifyTypeInstance) {
               subdomain: z.string(),
               address: z.string(),
               phone: z.string().optional(),
+              primaryColor: z.string(),
+              bannerUrl: z.string().optional(),
             }),
           }),
           404: z.object({

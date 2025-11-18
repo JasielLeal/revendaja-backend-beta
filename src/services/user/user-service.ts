@@ -7,6 +7,7 @@ import { sendVerificationEmail } from "@/mail/templates/send-verification-email"
 import jwt from "jsonwebtoken";
 import { forgotPassword } from "@/mail/templates/forgot-password";
 import { passwordChanged } from "@/mail/templates/password-changed";
+import { sendWhatsappMessage } from "@/whatsapp/sendWhatsapp";
 
 export class UserService {
   constructor(private userRepository: UserRepository) {}
@@ -19,29 +20,41 @@ export class UserService {
     }
 
     const passwordHash = await hash(data.password, 6);
-    const tokenAccess = jwt.sign(
-      { email: data.email },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "1d",
-      }
-    );
+
+    const randomNumbersSix = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
 
     await this.userRepository.createUser({
       name: data.name,
       email: data.email,
       password: passwordHash,
-      tokenAccess,
+      numberPhone: data.numberPhone,
+      tokenAccess: randomNumbersSix,
     });
 
-    sendEmail({
-      to: data.email,
-      subject: "Welcome to Odontly!",
-      html: sendVerificationEmail(
-        data.name,
-        `http://localhost:3000/verify-email?token=${tokenAccess}`
-      ),
-    });
+    // Enviar WhatsApp após criar o usuário
+    try {
+      console.log("🚀 Iniciando envio de WhatsApp...");
+      await sendWhatsappMessage(
+        data.numberPhone,
+        `Olá ${data.name}! 👋\n\nSua conta foi criada com sucesso no Revendaja!\n\nSeu código de verificação é: *${randomNumbersSix}*\n\nBem-vindo(a)! 🎉`
+      );
+      console.log("✅ WhatsApp enviado com sucesso!");
+    } catch (err: any) {
+      console.error("❌ Falha ao enviar WhatsApp:", err.message);
+      console.error("📋 Detalhes do erro:", err.response?.data || err);
+      // Não bloqueia a criação do usuário se o WhatsApp falhar
+    }
+
+    // sendEmail({
+    //   to: data.email,
+    //   subject: "Welcome to Odontly!",
+    //   html: sendVerificationEmail(
+    //     data.name,
+    //     `http://localhost:3000/verify-email?token=${tokenAccess}`
+    //   ),
+    // });
 
     return;
   }

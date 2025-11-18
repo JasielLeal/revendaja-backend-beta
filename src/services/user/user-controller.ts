@@ -19,6 +19,7 @@ export async function UserController(app: FastifyTypeInstance) {
           name: z.string().min(1),
           email: z.string().email(),
           password: z.string().min(6),
+          numberPhone: z.string().min(8).max(15),
         }),
         response: {
           201: z.object({
@@ -32,8 +33,8 @@ export async function UserController(app: FastifyTypeInstance) {
     },
     async (req, reply) => {
       try {
-        const { email, name, password } = req.body;
-        await userService.userCreate({ name, email, password });
+        const { email, name, password, numberPhone } = req.body;
+        await userService.userCreate({ name, email, password, numberPhone });
         return reply.status(201).send();
       } catch (err: any) {
         return reply.status(err.statusCode || 500).send({ error: err.message });

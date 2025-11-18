@@ -44,6 +44,8 @@ export class StoreWebService {
       subdomain: store.subdomain,
       address: store.address,
       phone: store.phone,
+      primaryColor: store.primaryColor || "#fc5800",
+      bannerUrl: store.bannerUrl,
       createdAt: store.createdAt,
       categories,
       totalProducts,
@@ -78,6 +80,55 @@ export class StoreWebService {
       products: productsData.products,
       pagination: productsData.pagination,
       categories,
+    };
+  }
+
+  async getStoreProductsList(
+    subdomain: string,
+    page: number,
+    pageSize: number,
+    search?: string,
+    category?: string,
+    status?: string
+  ) {
+    // Busca a loja pelo subdomínio
+    const store = await this.storeRepository.findBySubdomain(subdomain);
+
+    if (!store) {
+      throw new Error("Store not found");
+    }
+
+    // Usa o método existente do repositório com adaptação
+    const result = await this.storeProductRepository.findAllStoreProducts(
+      page,
+      pageSize,
+      store.id,
+      search || ""
+    );
+
+    // Filtrar por categoria e status se necessário
+    let filteredData = result.data;
+
+    if (category) {
+      filteredData = filteredData.filter(
+        (product) => product.category === category
+      );
+    }
+
+    if (status) {
+      filteredData = filteredData.filter(
+        (product) => product.status === status
+      );
+    }
+
+    return {
+      data: filteredData,
+      pagination: {
+        page,
+        pageSize,
+        total: filteredData.length,
+        totalPages: Math.ceil(filteredData.length / pageSize),
+      },
     };
   }
 
@@ -123,6 +174,8 @@ export class StoreWebService {
         subdomain: store.subdomain,
         address: store.address,
         phone: store.phone,
+        primaryColor: store.primaryColor || "#fc5800",
+        bannerUrl: store.bannerUrl,
       },
     };
   }

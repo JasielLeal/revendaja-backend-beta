@@ -9,6 +9,8 @@ export class StorePrismaRepository implements StoreRepository {
         address: data.address,
         name: data.name,
         phone: data.phone,
+        primaryColor: data.primaryColor,
+        bannerUrl: data.bannerUrl,
         userId: data.userId,
         subdomain: data.subdomain,
       },
@@ -38,5 +40,22 @@ export class StorePrismaRepository implements StoreRepository {
     });
 
     return store;
+  }
+
+  async updatePrimaryColor(
+    storeId: string,
+    primaryColor: string
+  ): Promise<void> {
+    await prisma.store.update({
+      where: { id: storeId },
+      data: { primaryColor },
+    });
+  }
+
+  async updateBanner(storeId: string, bannerUrl: string): Promise<void> {
+    await prisma.store.update({
+      where: { id: storeId },
+      data: { bannerUrl },
+    });
   }
 }

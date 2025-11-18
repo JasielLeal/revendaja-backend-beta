@@ -18,6 +18,8 @@ import { CatalogController } from "./services/catalog/catalog-controller";
 import { WebhookController } from "./services/webhook/webhook-controller";
 import { PaymentController } from "./services/webhook/payment-controller";
 import { StoreWebController } from "./services/store-web/store-web-controller";
+import { BannerController } from "./services/banner/banner-controller";
+import { WhatsappWebhookController } from "./services/whatsapp/whatsapp-webhook-controller";
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
 
@@ -79,6 +81,8 @@ app.register(CatalogController, { prefix: "/api" });
 app.register(WebhookController, { prefix: "/api" });
 app.register(PaymentController, { prefix: "/api" });
 app.register(StoreWebController, { prefix: "/api/web" });
+app.register(BannerController, { prefix: "/api" });
+app.register(WhatsappWebhookController, { prefix: "/api" });
 
 app.register(fastifySwaggerUi, {
   routePrefix: "/docs",

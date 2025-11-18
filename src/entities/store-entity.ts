@@ -8,6 +8,8 @@ export class StoreEntity {
   subdomain?: string;
   address: string;
   phone: string;
+  primaryColor?: string;
+  bannerUrl?: string;
   userId: string;
   user?: UserEntity;
   createdAt?: Date;
