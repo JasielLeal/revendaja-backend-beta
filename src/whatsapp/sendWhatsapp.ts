@@ -2,7 +2,7 @@ import axios from "axios";
 
 export async function sendWhatsappMessage(to: string, message: string) {
   const token =
-    "EAAQjf2LGwNUBP5WxwPDIQPflvbZCr3PZA4h7uz9XMnMhnaoNIPHVcuPFcdRr3RPl9roLsqJoUZB9SDX6UcZCnazJipme4d5LiKwnRgbajqptZBgVBeJSGRIqX6qz4lddU2kKpOshAl42HGZB4XYhweeeWhT9IjAPFuibrAUVoiGN8NGzPGdqqnx0eE3VjQFfbjOiOZCE8UeiADVNXKsZCBogIuZBnkf7UNYykNJv4tXclY7DboH7eiqYpKOG3VyCIrq3DaRJGBX9cngNbgUIrVMDcJYlb";
+    "EAAQjf2LGwNUBP06isiTkcctDYDo8hBtZCsnbMpKiSwZC1xakNssdF5owgz5iVK3mdXZAqbyrjsZC7X6qe5BrrYJKnS8ogxvUxWZA8Wis2Bq7RkZBEcOgBeIZC2B8KdA8p6CGqER1IDGevRVPiJra1jUm5qt7eilB3pRCC1B0XSPvZA3yTBtSWejye0d2uXl8QjanP4OaqxuFK3MGN95QK8aEVJZB8oOwhfx2oHPdZAbpYCcjZC0CeeMvSaGHUFhpoFIeePUstFb3TN1yRpFZB2xscdC61uZC2lAZDZD";
   const phoneNumberId = 872429802622777;
 
   // Limpar e formatar o número de telefone (remover espaços, hífens, parênteses)
