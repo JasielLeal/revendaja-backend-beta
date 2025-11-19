@@ -1,12 +1,12 @@
 import nodemailer from "nodemailer";
 
 export const transporter = nodemailer.createTransport({
-  host: "smtp.hostinger.com",
+  host: process.env.EMAIL_HOST,
   port: 465,
   secure: true,
   auth: {
-    user: "contato@revendaja.com",
-    pass: "|J1?f$tIe",
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
