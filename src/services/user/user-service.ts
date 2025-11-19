@@ -51,12 +51,17 @@ export class UserService {
     firstAccess: boolean;
     tokenAcess: string;
   }> {
+    console.time("signin");
+    console.time("find");
     const user = await this.userRepository.findByEmail(email);
-
+    console.timeEnd("find");
     if (!user) {
       throw new AppError("Invalid email or password", 401);
     }
+
+    console.time("bcrypt");
     const doesPasswordMatch = await compare(password, user.password);
+    console.timeEnd("bcrypt");
 
     if (!doesPasswordMatch) {
       throw new AppError("Invalid email or password", 401);
@@ -66,9 +71,12 @@ export class UserService {
       throw new AppError("Email not verified", 401);
     }
 
+    console.time("jwt");
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
       expiresIn: "8h",
     });
+    console.timeEnd("jwt");
+    console.timeEnd("signin");
 
     return {
       id: user.id,
@@ -79,22 +87,23 @@ export class UserService {
     };
   }
 
-  async verifyEmail(token: string): Promise<void> {
-    let payload: any;
-    payload = jwt.verify(token, process.env.JWT_SECRET);
-
-    const user = await this.userRepository.findByEmail(payload.email);
+  async verifyEmail(email: string, code: string): Promise<void> {
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      throw new AppError("Invalid token", 400);
+      throw new AppError("User not found", 404);
     }
 
     if (user.emailVerified) {
       throw new AppError("Email already verified", 400);
     }
 
-    await this.userRepository.emailVerifyUpdate(payload.email);
-    await this.userRepository.updateTokenAccess(payload.email, "");
+    if (user.tokenAccess !== code) {
+      throw new AppError("Invalid verification code", 400);
+    }
+
+    await this.userRepository.emailVerifyUpdate(email);
+    await this.userRepository.updateTokenAccess(email, "");
 
     return;
   }

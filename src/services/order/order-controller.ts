@@ -319,6 +319,11 @@ export async function OrderController(app: FastifyTypeInstance) {
             totalOrders: z.number(),
             totalRevenue: z.number(),
             estimatedProfit: z.number(),
+            percentageChange: z.object({
+              orders: z.number(),
+              revenue: z.number(),
+              profit: z.number(),
+            }),
           }),
           401: z.object({
             error: z.string().default("Unauthorized"),
@@ -476,6 +481,60 @@ export async function OrderController(app: FastifyTypeInstance) {
 
         return reply.status(500).send({
           error: "Erro interno: " + error.message,
+        });
+      }
+    }
+  );
+
+  // Buscar últimas 3 vendas
+  app.get(
+    "/orders/recent-sales",
+    {
+      schema: {
+        tags: ["Orders"],
+        description: "Get the 3 most recent sales",
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: z.array(
+            z.object({
+              id: z.string().optional(),
+              orderNumber: z.string(),
+              customerName: z.string().nullable().optional(),
+              customerPhone: z.string().nullable().optional(),
+              total: z.number(),
+              status: z.string().optional(),
+              paymentMethod: z.string(),
+              createdAt: z.date().optional(),
+              items: z
+                .array(
+                  z.object({
+                    id: z.string().optional(),
+                    name: z.string(),
+                    quantity: z.number(),
+                    price: z.number(),
+                    imgUrl: z.string().nullable().optional(),
+                  })
+                )
+                .optional(),
+            })
+          ),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        const userId = req.user.id;
+        const recentSales = await orderService.getRecentSales(userId);
+
+        return reply.status(200).send(recentSales);
+      } catch (error: any) {
+        console.log("❌ ERRO ao buscar vendas recentes:", error);
+        return reply.status(500).send({
+          error: "Erro ao buscar vendas recentes: " + error.message,
         });
       }
     }

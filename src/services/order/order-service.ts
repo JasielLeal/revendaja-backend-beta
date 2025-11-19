@@ -176,18 +176,84 @@ export class OrderService {
       throw new Error("Store not found");
     }
 
-    const orders = await this.orderRepository.getAllOrders(store.id, from, to);
+    // Se não forneceu from e to, usa o mês atual
+    let currentFrom = from;
+    let currentTo = to;
+
+    if (!from || !to) {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      currentFrom = firstDay.toISOString().split("T")[0];
+      currentTo = lastDay.toISOString().split("T")[0];
+    }
+
+    // Período atual
+    const orders = await this.orderRepository.getAllOrders(
+      store.id,
+      currentFrom,
+      currentTo
+    );
 
     const totalOrders = orders.length;
-
     const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0);
-
     const estimatedProfit = Math.round(totalRevenue * 0.3);
+
+    // Calcular período anterior (mesmo intervalo de dias)
+    const fromDate = new Date(currentFrom);
+    const toDate = new Date(currentTo);
+    const diffDays = Math.ceil(
+      (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // Período anterior
+    const previousToDate = new Date(fromDate);
+    previousToDate.setDate(previousToDate.getDate() - 1);
+    const previousFromDate = new Date(previousToDate);
+    previousFromDate.setDate(previousFromDate.getDate() - diffDays);
+
+    const previousFrom = previousFromDate.toISOString().split("T")[0];
+    const previousTo = previousToDate.toISOString().split("T")[0];
+
+    const previousOrders = await this.orderRepository.getAllOrders(
+      store.id,
+      previousFrom,
+      previousTo
+    );
+
+    const previousTotalOrders = previousOrders.length;
+    const previousTotalRevenue = previousOrders.reduce(
+      (acc, o) => acc + o.total,
+      0
+    );
+    const previousEstimatedProfit = Math.round(previousTotalRevenue * 0.3);
+
+    // Calcular diferença em valores absolutos
+    const percentageChange = {
+      orders: totalOrders - previousTotalOrders,
+      revenue: totalRevenue - previousTotalRevenue,
+      profit: estimatedProfit - previousEstimatedProfit,
+    };
 
     return {
       totalOrders,
       totalRevenue,
       estimatedProfit,
+      percentageChange,
+      currentPeriod: {
+        from: currentFrom,
+        to: currentTo,
+      },
+      previousPeriod: {
+        from: previousFrom,
+        to: previousTo,
+        totalOrders: previousOrders.length,
+        totalRevenue: previousOrders.reduce((acc, o) => acc + o.total, 0),
+        estimatedProfit: Math.round(
+          previousOrders.reduce((acc, o) => acc + o.total, 0) * 0.3
+        ),
+      },
     };
   }
 
@@ -244,5 +310,28 @@ export class OrderService {
 
     // Deletar a order (vai deletar os itens em cascata)
     await this.orderRepository.delete(orderId);
+  }
+
+  async getRecentSales(userId: string): Promise<OrderEntity[]> {
+    const store = await this.storeRepository.findyStoreByUserId(userId);
+
+    if (!store) {
+      throw new Error("Store not found");
+    }
+
+    const orders = await this.orderRepository.getAllOrders(
+      store.id,
+      undefined,
+      undefined
+    );
+
+    // Retorna as 3 últimas vendas ordenadas por data de criação
+    return orders
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      })
+      .slice(0, 3);
   }
 }

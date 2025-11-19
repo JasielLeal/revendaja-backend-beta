@@ -86,25 +86,31 @@ export async function UserController(app: FastifyTypeInstance) {
     {
       schema: {
         tags: ["Users"],
-        description: "Verify user email",
+        description: "Verify user email with 6-digit code",
         body: z.object({
-          token: z.string(),
+          email: z.string().email(),
+          code: z.string().length(6),
         }),
         response: {
           200: z.object({
             message: z.string().default("Email verified successfully"),
           }),
           400: z.object({
-            error: z.string().default("Invalid token"),
+            error: z.string().default("Invalid verification code"),
+          }),
+          404: z.object({
+            error: z.string().default("User not found"),
           }),
         },
       },
     },
     async (req, reply) => {
       try {
-        const { token } = req.body;
-        await userService.verifyEmail(token);
-        return reply.status(200).send();
+        const { email, code } = req.body;
+        await userService.verifyEmail(email, code);
+        return reply
+          .status(200)
+          .send({ message: "Email verified successfully" });
       } catch (err: any) {
         return reply.status(err.statusCode || 500).send({ error: err.message });
       }

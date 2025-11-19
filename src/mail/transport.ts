@@ -20,7 +20,7 @@ interface SendEmailProps {
 export async function sendEmail({ to, subject, text, html }: SendEmailProps) {
   try {
     await transporter.sendMail({
-      from: `"Odontly"`,
+      from: `"Revendaja" <contato@revendaja.com>`,
       to,
       subject,
       text,
