@@ -191,7 +191,14 @@ export async function UserController(app: FastifyTypeInstance) {
         response: {
           200: z.object({
             valid: z.boolean(),
-            userId: z.string(),
+            user: z.object({
+              id: z.string(),
+              email: z.string(),
+              name: z.string().nullable(),
+              role: z.string(),
+              plan: z.string().optional(),
+              firstAccess: z.boolean().optional(),
+            }),
           }),
           401: z.object({
             error: z.string().default("Invalid or expired token"),
@@ -202,10 +209,18 @@ export async function UserController(app: FastifyTypeInstance) {
     },
     async (req, reply) => {
       try {
+
         // Se chegou aqui, o token é válido (passou pelo middleware)
         return reply.status(200).send({
           valid: true,
-          userId: req.user.id,
+          user: {
+            id: req.user.id,
+            email: req.user.email,
+            name: req.user.name,
+            role: req.user.role,
+            plan: req.user.plan,
+            firstAccess: req.user.firstAccess,
+          },
         });
       } catch (err: any) {
         return reply.status(401).send({ error: "Invalid or expired token" });

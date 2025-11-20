@@ -68,8 +68,6 @@ export async function CatalogController(app: FastifyTypeInstance) {
         const userId = req.user.id;
 
         const products = await catalogService.getAll(userId, page, pageSize);
-      
-        console.log(products)
 
         return reply.status(200).send({
           products: products.map((product) => ({

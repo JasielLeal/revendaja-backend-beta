@@ -14,6 +14,10 @@ export async function verifyToken(req: FastifyRequest, reply: FastifyReply) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       id: string;
       email: string;
+      name: string | null;
+      role: string;
+      plan?: string;
+      firstAccess?: boolean;
     };
 
     req.user = decoded; // <-- injeta o user no request
