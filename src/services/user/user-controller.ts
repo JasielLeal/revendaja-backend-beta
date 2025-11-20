@@ -180,6 +180,39 @@ export async function UserController(app: FastifyTypeInstance) {
     }
   );
 
+  //Verificar token
+  app.get(
+    "/verify-token",
+    {
+      schema: {
+        tags: ["Users"],
+        description: "Verify if token is valid",
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: z.object({
+            valid: z.boolean(),
+            userId: z.string(),
+          }),
+          401: z.object({
+            error: z.string().default("Invalid or expired token"),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        // Se chegou aqui, o token é válido (passou pelo middleware)
+        return reply.status(200).send({
+          valid: true,
+          userId: req.user.id,
+        });
+      } catch (err: any) {
+        return reply.status(401).send({ error: "Invalid or expired token" });
+      }
+    }
+  );
+
   //Informações do usuário
   app.get(
     "/me",
