@@ -55,6 +55,7 @@ export class StoreProductService {
       storeId: store.id,
       brand: catalogProduct.brand,
       company: catalogProduct.company,
+      barcode: catalogProduct.barcode,
     });
 
     return;
@@ -131,5 +132,27 @@ export class StoreProductService {
     }
 
     return updatedFields;
+  }
+
+  async findByBarcode(
+    barcode: string,
+    userId: string
+  ): Promise<StoreProductEntity | null> {
+    const store = await this.storeRepository.findyStoreByUserId(userId);
+
+    if (!store) {
+      throw new Error("Store not found");
+    }
+
+    const product = await this.storeProductRepository.findByBarcode(
+      barcode,
+      store.id
+    );
+
+    if (!product) {
+      return null;
+    }
+
+    return product;
   }
 }

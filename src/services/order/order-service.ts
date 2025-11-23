@@ -119,7 +119,8 @@ export class OrderService {
 
     const totalOrders = orders.length;
 
-    const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0);
+    const approvedOrders = orders.filter((o) => o.status === "approved");
+    const totalRevenue = approvedOrders.reduce((acc, o) => acc + o.total, 0);
 
     const estimatedProfit = Math.round(totalRevenue * 0.3);
 
@@ -157,7 +158,11 @@ export class OrderService {
 
     // Calcula métricas com base nos pedidos da página
     const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((acc, order) => acc + order.total, 0);
+    const approvedOrders = orders.filter((o) => o.status === "approved");
+    const totalRevenue = approvedOrders.reduce(
+      (acc, order) => acc + order.total,
+      0
+    );
     const estimatedProfit = Math.round(totalRevenue * 0.3);
 
     return {
@@ -197,7 +202,8 @@ export class OrderService {
     );
 
     const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0);
+    const approvedOrders = orders.filter((o) => o.status === "approved");
+    const totalRevenue = approvedOrders.reduce((acc, o) => acc + o.total, 0);
     const estimatedProfit = Math.round(totalRevenue * 0.3);
 
     // Calcular período anterior (mesmo intervalo de dias)
@@ -223,7 +229,10 @@ export class OrderService {
     );
 
     const previousTotalOrders = previousOrders.length;
-    const previousTotalRevenue = previousOrders.reduce(
+    const previousApprovedOrders = previousOrders.filter(
+      (o) => o.status === "approved"
+    );
+    const previousTotalRevenue = previousApprovedOrders.reduce(
       (acc, o) => acc + o.total,
       0
     );
@@ -249,9 +258,12 @@ export class OrderService {
         from: previousFrom,
         to: previousTo,
         totalOrders: previousOrders.length,
-        totalRevenue: previousOrders.reduce((acc, o) => acc + o.total, 0),
+        totalRevenue: previousApprovedOrders.reduce(
+          (acc, o) => acc + o.total,
+          0
+        ),
         estimatedProfit: Math.round(
-          previousOrders.reduce((acc, o) => acc + o.total, 0) * 0.3
+          previousApprovedOrders.reduce((acc, o) => acc + o.total, 0) * 0.3
         ),
       },
     };

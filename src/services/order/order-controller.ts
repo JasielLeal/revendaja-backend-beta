@@ -225,6 +225,7 @@ export async function OrderController(app: FastifyTypeInstance) {
                 orderNumber: z.string(),
                 status: z.string(),
                 total: z.number(),
+                paymentMethod: z.string(),
                 customerName: z.string().optional(),
                 customerPhone: z.string().optional(),
                 storeId: z.string(),
@@ -268,7 +269,7 @@ export async function OrderController(app: FastifyTypeInstance) {
       try {
         const { from, to, search, status, page, limit } = req.query;
         const { id } = req.user;
-
+        console.log("req chegou aqui");
         const dashboardData = await orderService.getDashboardDataPagination(
           id,
           page ? Number(page) : 1,

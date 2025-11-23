@@ -270,4 +270,72 @@ export async function StoreProductController(app: FastifyTypeInstance) {
       }
     }
   );
+
+  app.get(
+    "/store-product/barcode/:barcode",
+    {
+      schema: {
+        tags: ["Store-Products"],
+        description: "Get store product by barcode",
+        params: z.object({
+          barcode: z.string(),
+        }),
+        response: {
+          200: z.object({
+            id: z.string(),
+            name: z.string(),
+            price: z.number(),
+            quantity: z.number(),
+            brand: z.string(),
+            imgUrl: z.string(),
+            company: z.string(),
+            category: z.string(),
+            status: z.enum(["Active", "Inactive"]),
+          }),
+          404: z.object({
+            error: z.string(),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        const { barcode } = req.params;
+        const { id } = req.user;
+
+        const product = await storeProductService.findByBarcode(barcode, id);
+
+        if (!product) {
+          return reply.status(404).send({
+            error: "Produto não encontrado",
+          });
+        }
+
+        // converter Date -> string ISO
+        const serializedProduct = {
+          id: product.id!,
+          name: product.name,
+          price: product.price,
+          quantity: product.quantity,
+          brand: product.brand,
+          company: product.company,
+          imgUrl: product.imgUrl || "",
+          category: product.category || "",
+          status: (product.status || "Active") as "Active" | "Inactive",
+        };
+
+        return reply.status(200).send(serializedProduct);
+      } catch (error: any) {
+        console.log("❌ ERRO ao buscar produto por código de barras:", error);
+
+        return reply.status(500).send({
+          error: "Erro interno: " + error.message,
+        });
+      }
+    }
+  );
 }

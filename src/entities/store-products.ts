@@ -10,6 +10,7 @@ export class StoreProductEntity {
   company: string;
   catalogPrice?: number;
   catalogId?: number;
+  barcode?: string;
   category?: string;
   imgUrl?: string;
   status?: string;

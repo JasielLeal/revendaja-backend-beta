@@ -77,7 +77,7 @@ model StoreProduct {
   // Para produtos do catálogo
   catalogPrice Float?
   catalogId    Int?
-
+  barcode      String
   category     String?
   imgUrl       String?
   status       String?      @default("Active")

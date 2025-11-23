@@ -46,4 +46,8 @@ export interface StoreProductRepository {
     productId: string,
     storeId: string
   ): Promise<StoreProductEntity | null>;
+  findByBarcode(
+    barcode: string,
+    storeId: string
+  ): Promise<StoreProductEntity | null>;
 }

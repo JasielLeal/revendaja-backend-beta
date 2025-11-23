@@ -18,6 +18,7 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
         type: data.type,
         brand: data.brand,
         company: data.company,
+        barcode: data.barcode,
       },
     });
   }
@@ -255,6 +256,19 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
       },
     });
 
+    return product as StoreProductEntity | null;
+  }
+
+  async findByBarcode(
+    barcode: string,
+    storeId: string
+  ): Promise<StoreProductEntity | null> {
+    const product = await prisma.storeProduct.findFirst({
+      where: {
+        barcode,
+        storeId,
+      },
+    });
     return product as StoreProductEntity | null;
   }
 }

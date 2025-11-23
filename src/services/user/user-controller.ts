@@ -49,8 +49,8 @@ export async function UserController(app: FastifyTypeInstance) {
         tags: ["Users"],
         description: "User sign in",
         body: z.object({
-          email: z.string().email(),
-          password: z.string().min(6),
+          email: z.string().email().default("jasieloficial@hotmail.com"),
+          password: z.string().min(6).default("123456"),
         }),
         response: {
           201: z.object({
@@ -209,7 +209,6 @@ export async function UserController(app: FastifyTypeInstance) {
     },
     async (req, reply) => {
       try {
-
         // Se chegou aqui, o token é válido (passou pelo middleware)
         return reply.status(200).send({
           valid: true,
