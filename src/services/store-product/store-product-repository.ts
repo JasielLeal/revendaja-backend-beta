@@ -25,6 +25,8 @@ export interface StoreProductRepository {
   updatedStock(productId: string, newQuantity: number): Promise<void>;
   updateStatus(productId: string, status: string): Promise<void>;
   updatePrice(productId: string, newPrice: number): Promise<void>;
+  updateValidityDate(productId: string, newValidityDate: Date): Promise<void>;
+  updateCostPrice(productId: string, newCostPrice: number): Promise<void>;
 
   // Métodos para store-web
   getUniqueCategories(storeId: string): Promise<string[]>;

@@ -8,6 +8,7 @@ export interface CreateOrderDTO {
   paymentMethod: string;
   customerName?: string;
   customerPhone?: string;
+  createdAt?: string;
   items: Array<{
     storeProductId: string; // ← Mudei de 'id' para 'storeProductId'
     quantity: number;
@@ -48,6 +49,7 @@ export class OrderService {
       total: data.total || total, // Usa o total fornecido ou o calculado
       status: status,
       paymentMethod: data.paymentMethod,
+      createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
     });
 
     // 3. Salva no banco
@@ -131,6 +133,7 @@ export class OrderService {
       orders,
     };
   }
+
   async getDashboardDataPagination(
     userId: string,
     page: number = 1,
@@ -155,6 +158,8 @@ export class OrderService {
         search,
         status
       );
+
+      console.log(orders)
 
     // Calcula métricas com base nos pedidos da página
     const totalOrders = orders.length;

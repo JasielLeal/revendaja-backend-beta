@@ -28,6 +28,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           catalogId: z.number().min(1), // Mudei para number pois no schema é Int
           price: z.number().min(0.01).optional(), // Corrigi o .optional
           quantity: z.number().min(0).default(0), // Permite 0 como quantidade inicial
+          validityDate: z.string().optional().default("2025-12-31"), // Data de validade do produto
+          costPrice: z.number().min(0).optional(),
         }),
         response: {
           201: z.object({
@@ -49,13 +51,15 @@ export async function StoreProductController(app: FastifyTypeInstance) {
 
     async (req, reply) => {
       try {
-        const { catalogId, price, quantity } = req.body as {
-          catalogId: number;
-          storeId: string;
-          price?: number;
-          quantity: number;
-        };
-
+        const { catalogId, price, quantity, costPrice, validityDate } =
+          req.body as {
+            catalogId: number;
+            storeId: string;
+            price?: number;
+            quantity: number;
+            validityDate?: string;
+            costPrice?: number;
+          };
         const { id } = req.user;
 
         // Se price não foi informado, usa o preço sugerido do catálogo
@@ -65,6 +69,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           price: finalPrice,
           quantity,
           userId: id,
+          validityDate: new Date(validityDate),
+          costPrice: costPrice,
         });
 
         return reply.status(201).send({
@@ -123,6 +129,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
                 price: z.number(),
                 quantity: z.number(),
                 brand: z.string(),
+                barcode: z.string(),
                 company: z.string(),
                 catalogPrice: z.number(),
                 catalogId: z.number(),
@@ -131,6 +138,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
                 status: z.string(),
                 storeId: z.string(),
                 type: z.string(),
+                validityDate: z.string().nullable(),
                 createdAt: z.string(),
                 updatedAt: z.string(),
               })
@@ -153,13 +161,14 @@ export async function StoreProductController(app: FastifyTypeInstance) {
       try {
         const { page, pageSize, query } = req.query;
         const { id } = req.user;
-
         const result = await storeProductService.findAllStoreProducts(
           page,
           pageSize,
           id,
           query
         );
+
+        console.log(result);
 
         // converter Date -> string ISO
         const serializedResult = {
@@ -198,6 +207,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           price: z.number().min(0.01).optional(),
           quantity: z.number().min(0).optional(),
           status: z.enum(["Active", "Inactive"]).optional(),
+          validityDate: z.string().optional().default("2025-12-31"),
+          costPrice: z.number().min(0).optional(),
         }),
         response: {
           200: z.object({
@@ -220,7 +231,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
     async (req, reply) => {
       try {
         const { id } = req.params;
-        const { price, quantity, status } = req.body;
+        const { price, quantity, status, validityDate, costPrice } = req.body;
         const userId = req.user.id;
 
         // Validar se pelo menos um campo foi enviado
@@ -242,6 +253,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
             price,
             quantity,
             status,
+            validityDate: validityDate ? new Date(validityDate) : undefined,
+            costPrice,
           }
         );
 
@@ -306,6 +319,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
       try {
         const { barcode } = req.params;
         const { id } = req.user;
+
+        console.log("🔍 Buscando produto com código de barras:", barcode);
 
         const product = await storeProductService.findByBarcode(barcode, id);
 

@@ -19,6 +19,8 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
         brand: data.brand,
         company: data.company,
         barcode: data.barcode,
+        validity_date: data.validityDate,
+        cost_price: data.costPrice,
       },
     });
   }
@@ -124,6 +126,38 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
       },
       data: {
         price: newPrice,
+      },
+    });
+
+    return;
+  }
+
+  async updateValidityDate(
+    productId: string,
+    newValidityDate: Date
+  ): Promise<void> {
+    await prisma.storeProduct.update({
+      where: {
+        id: productId,
+      },
+      data: {
+        validity_date: newValidityDate,
+      },
+    });
+
+    return;
+  }
+
+  async updateCostPrice(
+    productId: string,
+    newCostPrice: number
+  ): Promise<void> {
+    await prisma.storeProduct.update({
+      where: {
+        id: productId,
+      },
+      data: {
+        cost_price: newCostPrice,
       },
     });
 

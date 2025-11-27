@@ -28,6 +28,7 @@ export async function OrderController(app: FastifyTypeInstance) {
           customerPhone: z.string().min(1).optional(),
           status: z.string().min(1).optional(),
           paymentMethod: z.string(),
+          createdAt: z.string().optional(),
           items: z
             .array(
               z.object({
@@ -66,7 +67,7 @@ export async function OrderController(app: FastifyTypeInstance) {
     },
     async (req, reply) => {
       try {
-        const { customerName, customerPhone, items, status, paymentMethod } =
+        const { customerName, customerPhone, items, status, paymentMethod, createdAt } =
           req.body;
         const userId = req.user.id; // Do seu middleware de autenticação
 
@@ -74,6 +75,7 @@ export async function OrderController(app: FastifyTypeInstance) {
           {
             customerName,
             customerPhone,
+            createdAt,
             items,
             paymentMethod,
           },
@@ -227,7 +229,7 @@ export async function OrderController(app: FastifyTypeInstance) {
                 total: z.number(),
                 paymentMethod: z.string(),
                 customerName: z.string().optional(),
-                customerPhone: z.string().optional(),
+                customerPhone: z.string().nullable().optional(),
                 storeId: z.string(),
                 createdAt: z.string(),
                 updatedAt: z.string(),

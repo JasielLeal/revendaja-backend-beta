@@ -23,6 +23,7 @@ export class OrderPrismaRepository implements OrderRepository {
             storeProductId: item.storeProductId,
           })),
         },
+        createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
       },
       include: {
         store: true,

@@ -2,12 +2,15 @@ import { StoreProductEntity } from "@/entities/store-products";
 import { StoreProductRepository } from "./store-product-repository";
 import { CatalogRepository } from "../catalog/catalog-repository";
 import { StoreRepository } from "../store/store-repository";
+import { da } from "zod/locales";
 
 interface AddCatalogProductDTO {
   catalogId: number;
   userId: string;
   price: number; // Preço que o usuário quer vender
   quantity: number; // Quantidade que o usuário tem em estoque
+  validityDate?: Date; // Data de validade do produto
+  costPrice?: number; // Preço de custo do produto
 }
 
 export class StoreProductService {
@@ -56,6 +59,8 @@ export class StoreProductService {
       brand: catalogProduct.brand,
       company: catalogProduct.company,
       barcode: catalogProduct.barcode,
+      validityDate: data.validityDate,
+      costPrice: data.costPrice,
     });
 
     return;
@@ -90,6 +95,8 @@ export class StoreProductService {
       price?: number;
       quantity?: number;
       status?: string;
+      validityDate?: Date;
+      costPrice?: number;
     }
   ): Promise<string[]> {
     // Verificar se a loja pertence ao usuário
@@ -129,6 +136,22 @@ export class StoreProductService {
     if (updates.status !== undefined) {
       await this.storeProductRepository.updateStatus(productId, updates.status);
       updatedFields.push("status");
+    }
+
+    if (updates.validityDate !== undefined) {
+      await this.storeProductRepository.updateValidityDate(
+        productId,
+        new Date(updates.validityDate)
+      );
+      updatedFields.push("validityDate");
+    }
+
+    if (updates.costPrice !== undefined) {
+      await this.storeProductRepository.updateCostPrice(
+        productId,
+        updates.costPrice
+      );
+      updatedFields.push("costPrice");
     }
 
     return updatedFields;

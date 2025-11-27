@@ -80,14 +80,16 @@ model StoreProduct {
   barcode      String
   category     String?
   imgUrl       String?
-  status       String?      @default("Active")
+  cost_price   Float?
+  validity_date DateTime?
+  status       String?      @default("active")
   brand        String
   company      String
   storeId      String
   store        Store       @relation(fields: [storeId], references: [id], onDelete: Cascade )
   catalog      Catalog?    @relation(fields: [catalogId], references: [id])
 
-  type         String       @default("Catalog")
+  type         String       @default("catalog")
 
   // Vendas deste produto
   orderItems   OrderItem[]
