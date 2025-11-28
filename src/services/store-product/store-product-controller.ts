@@ -138,7 +138,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
                 status: z.string(),
                 storeId: z.string(),
                 type: z.string(),
-                validityDate: z.string().nullable(),
+                validity_date: z.date().nullable(),
+                cost_price: z.number().nullable(),
                 createdAt: z.string(),
                 updatedAt: z.string(),
               })
@@ -168,8 +169,6 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           query
         );
 
-        console.log(result);
-
         // converter Date -> string ISO
         const serializedResult = {
           ...result,
@@ -179,6 +178,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
             updatedAt: p.updatedAt.toISOString(),
           })),
         };
+
+       console.log("✅ Result");
 
         return reply.status(200).send(serializedResult);
       } catch (error: any) {
@@ -206,7 +207,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
         body: z.object({
           price: z.number().min(0.01).optional(),
           quantity: z.number().min(0).optional(),
-          status: z.enum(["Active", "Inactive"]).optional(),
+          status: z.enum(["active", "inactive"]).optional(),
           validityDate: z.string().optional().default("2025-12-31"),
           costPrice: z.number().min(0).optional(),
         }),
@@ -253,8 +254,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
             price,
             quantity,
             status,
-            validityDate: validityDate ? new Date(validityDate) : undefined,
-            costPrice,
+            validity_date: new Date(validityDate),
+            cost_price: costPrice,
           }
         );
 

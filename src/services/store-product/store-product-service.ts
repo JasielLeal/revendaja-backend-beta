@@ -95,8 +95,8 @@ export class StoreProductService {
       price?: number;
       quantity?: number;
       status?: string;
-      validityDate?: Date;
-      costPrice?: number;
+      validity_date?: Date;
+      cost_price?: number;
     }
   ): Promise<string[]> {
     // Verificar se a loja pertence ao usuário
@@ -138,20 +138,22 @@ export class StoreProductService {
       updatedFields.push("status");
     }
 
-    if (updates.validityDate !== undefined) {
+    console.log(updates.validity_date);
+
+    if (updates.validity_date !== undefined) {
       await this.storeProductRepository.updateValidityDate(
         productId,
-        new Date(updates.validityDate)
+        new Date(updates.validity_date)
       );
-      updatedFields.push("validityDate");
+      updatedFields.push("validity_date");
     }
 
-    if (updates.costPrice !== undefined) {
+    if (updates.cost_price !== undefined) {
       await this.storeProductRepository.updateCostPrice(
         productId,
-        updates.costPrice
+        updates.cost_price
       );
-      updatedFields.push("costPrice");
+      updatedFields.push("cost_price");
     }
 
     return updatedFields;
