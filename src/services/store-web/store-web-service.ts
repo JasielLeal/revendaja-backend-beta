@@ -1,5 +1,6 @@
 import { StoreRepository } from "../store/store-repository";
 import { StoreProductRepository } from "../store-product/store-product-repository";
+import { BannerRepository } from "../banner/banner-repository";
 
 interface ProductFilters {
   category?: string;
@@ -13,7 +14,8 @@ interface ProductFilters {
 export class StoreWebService {
   constructor(
     private storeRepository: StoreRepository,
-    private storeProductRepository: StoreProductRepository
+    private storeProductRepository: StoreProductRepository,
+    private bannerRepository: BannerRepository
   ) {}
 
   async getStoreInfo(subdomain: string) {
@@ -38,6 +40,8 @@ export class StoreWebService {
     const productsByCategory =
       await this.storeProductRepository.countProductsByCategory(store.id);
 
+    const banner = await this.bannerRepository.findById(store.bannerId!);
+
     return {
       id: store.id,
       name: store.name,
@@ -45,7 +49,10 @@ export class StoreWebService {
       address: store.address,
       phone: store.phone,
       primaryColor: store.primaryColor || "#fc5800",
-      bannerUrl: store.bannerUrl,
+      bannerUrl: {
+        mobile: banner?.mobileUrl || null,
+        desktop: banner?.desktopUrl || null,
+      },
       createdAt: store.createdAt,
       categories,
       totalProducts,

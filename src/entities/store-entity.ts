@@ -12,6 +12,7 @@ export class StoreEntity {
   bannerUrl?: string;
   userId: string;
   user?: UserEntity;
+  bannerId: string;
   createdAt?: Date;
   updatedAt?: Date;
   storeProducts?: StoreProductEntity[];

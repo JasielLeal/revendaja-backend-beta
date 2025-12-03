@@ -12,8 +12,6 @@ export async function CatalogController(app: FastifyTypeInstance) {
   const storeRepository = new StorePrismaRepository();
   const catalogService = new CatalogService(catalogRepository, storeRepository);
 
- 
-
   app.get(
     "/catalog/find-all",
     {

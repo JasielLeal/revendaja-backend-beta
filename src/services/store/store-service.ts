@@ -24,6 +24,8 @@ export class StoreService {
 
     const subdomain = data.name.toLowerCase().replace(/\s+/g, "");
 
+    const bannerId = "2e173f00-7b7d-4082-ba19-22b8be5a9b16";
+
     await this.storeRepository.createStore({
       address: data.address,
       name: data.name,
@@ -31,6 +33,7 @@ export class StoreService {
       primaryColor: data.primaryColor || "#fc5800",
       userId: userId,
       subdomain: subdomain,
+      bannerId: bannerId,
     });
   }
 
@@ -51,21 +54,5 @@ export class StoreService {
     }
 
     await this.storeRepository.updatePrimaryColor(store.id!, primaryColor);
-  }
-
-  async updateBanner(userId: string, bannerId: string): Promise<void> {
-    const store = await this.storeRepository.findyStoreByUserId(userId);
-
-    if (!store) {
-      throw new Error("Store not found");
-    }
-
-    // Validar se o banner existe
-    if (!BannerService.validateBannerId(bannerId)) {
-      throw new Error("Invalid banner ID");
-    }
-
-    const banner = BannerService.getBannerById(bannerId);
-    await this.storeRepository.updateBanner(store.id!, banner!.url);
   }
 }

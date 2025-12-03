@@ -4,13 +4,16 @@ import { FastifyTypeInstance } from "@/types/fastify-instance";
 import { StorePrismaRepository } from "../store/store-prisma-repository";
 import { StoreProductPrismaRepository } from "../store-product/store-product-prisma-repository";
 import { StoreWebService } from "./store-web-service";
+import { BannerPrismaRepository } from "../banner/banner-prisma-repository";
 
 export async function StoreWebController(app: FastifyTypeInstance) {
   const storeRepository = new StorePrismaRepository();
   const storeProductRepository = new StoreProductPrismaRepository();
+  const bannerRepository = new BannerPrismaRepository();
   const storeWebService = new StoreWebService(
     storeRepository,
-    storeProductRepository
+    storeProductRepository,
+    bannerRepository
   );
 
   // Obter informações da loja pelo subdomínio
@@ -31,7 +34,10 @@ export async function StoreWebController(app: FastifyTypeInstance) {
             address: z.string(),
             phone: z.string().optional(),
             primaryColor: z.string(),
-            bannerUrl: z.string().optional(),
+            bannerUrl: z.object({
+              mobile: z.string().nullable(),
+              desktop: z.string().nullable(),
+            }),
             createdAt: z.string(),
             categories: z.array(z.string()),
             totalProducts: z.number(),
@@ -55,9 +61,20 @@ export async function StoreWebController(app: FastifyTypeInstance) {
 
         const storeData = await storeWebService.getStoreInfo(subdomain);
 
+        console.log(storeData);
+
         return reply.status(200).send({
-          ...storeData,
+          id: storeData.id,
+          name: storeData.name,
+          subdomain: storeData.subdomain,
+          address: storeData.address,
+          phone: storeData.phone,
+          primaryColor: storeData.primaryColor,
+          bannerUrl: storeData.bannerUrl,
           createdAt: storeData.createdAt.toISOString(),
+          categories: storeData.categories,
+          totalProducts: storeData.totalProducts,
+          productsByCategory: storeData.productsByCategory,
         });
       } catch (error: any) {
         console.log("❌ ERRO ao buscar informações da loja:", error);
@@ -212,7 +229,7 @@ export async function StoreWebController(app: FastifyTypeInstance) {
             .transform((val) => parseInt(val, 10)),
           search: z.string().optional(),
           category: z.string().optional(),
-          status: z.enum(["Active", "Inactive"]).optional().default("Active"),
+          status: z.enum(["active", "inactive"]).optional().default("active"),
         }),
         response: {
           200: z.object({

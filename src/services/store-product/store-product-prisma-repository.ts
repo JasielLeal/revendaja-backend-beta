@@ -55,13 +55,15 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     };
 
     if (query) {
-      where.name = {
-        contains: query,
-        mode: "insensitive", // não diferencia maiúsculas/minúsculas
-      };
+      where.OR = [
+        { name: { contains: query, mode: "insensitive" } },
+        { brand: { contains: query, mode: "insensitive" } },
+        { company: { contains: query, mode: "insensitive" } },
+        { category: { contains: query, mode: "insensitive" } },
+      ];
     }
 
-    // Lista de produtos paginados
+    // Lista de produtos paginados (busca exata/contains)
     const products = await prisma.storeProduct.findMany({
       where,
       skip,
@@ -70,7 +72,57 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     });
 
     // Total de produtos para paginação
-    const total = await prisma.storeProduct.count({ where });
+    let total = await prisma.storeProduct.count({ where });
+
+    // Fallback: se houver query e não retornou nada, tenta fuzzy search com pg_trgm
+    if (query && total === 0) {
+      try {
+        // Nota: requer extensão pg_trgm habilitada e índices GIN (ver migração)
+        const fuzzyRows = await prisma.$queryRaw<any[]>`
+          WITH scored AS (
+            SELECT *, GREATEST(
+              similarity(lower("name"), lower(${query})),
+              similarity(lower("brand"), lower(${query})),
+              similarity(lower("company"), lower(${query})),
+              similarity(lower("category"), lower(${query}))
+            ) AS score
+            FROM "store_products"
+            WHERE "storeId" = ${storeId}
+          )
+          SELECT * FROM scored
+          WHERE score > 0.2
+          ORDER BY score DESC, "createdAt" DESC
+          OFFSET ${skip} LIMIT ${take};
+        `;
+
+        const [{ count }] = await prisma.$queryRaw<any[]>`
+          WITH scored AS (
+            SELECT GREATEST(
+              similarity(lower("name"), lower(${query})),
+              similarity(lower("brand"), lower(${query})),
+              similarity(lower("company"), lower(${query})),
+              similarity(lower("category"), lower(${query}))
+            ) AS score
+            FROM "store_products"
+            WHERE "storeId" = ${storeId}
+          )
+          SELECT COUNT(*)::int AS count FROM scored WHERE score > 0.2;
+        `;
+
+        return {
+          data: fuzzyRows as StoreProductEntity[],
+          pagination: {
+            page,
+            pageSize,
+            total: count as number,
+            totalPages: Math.ceil((count as number) / pageSize),
+          },
+          usedFuzzy: true,
+        };
+      } catch (e) {
+        // Se a extensão não existir, apenas retorna vazio normalmente
+      }
+    }
 
     return {
       data: products,
@@ -80,6 +132,7 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
         total,
         totalPages: Math.ceil(total / pageSize),
       },
+      usedFuzzy: false,
     };
   }
 
@@ -168,7 +221,7 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     const categories = await prisma.storeProduct.findMany({
       where: {
         storeId,
-        status: "Active",
+        status: "active",
       },
       select: {
         category: true,
@@ -185,7 +238,7 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     return prisma.storeProduct.count({
       where: {
         storeId,
-        status: "Active",
+        status: "active",
       },
     });
   }
@@ -197,7 +250,7 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
       by: ["category"],
       where: {
         storeId,
-        status: "Active",
+        status: "active",
       },
       _count: {
         id: true,
@@ -235,7 +288,7 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
   }> {
     const where: any = {
       storeId,
-      status: "Active",
+      status: "active",
     };
 
     // Filtro por categoria

@@ -162,12 +162,17 @@ export async function StoreProductController(app: FastifyTypeInstance) {
       try {
         const { page, pageSize, query } = req.query;
         const { id } = req.user;
+
+        console.log(query)
+
         const result = await storeProductService.findAllStoreProducts(
           page,
           pageSize,
           id,
           query
         );
+
+        
 
         // converter Date -> string ISO
         const serializedResult = {
