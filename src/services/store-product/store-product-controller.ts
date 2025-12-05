@@ -172,8 +172,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           query
         );
 
-        
-
+      
         // converter Date -> string ISO
         const serializedResult = {
           ...result,

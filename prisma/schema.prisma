@@ -110,6 +110,10 @@ model Order {
   customerName  String?
   customerPhone String?
   paymentMethod String       @default("Pix")
+  isDelivery    Boolean      @default(false)
+  deliveryStreet String?
+  deliveryNumber String?
+  deliveryNeighborhood String?
   storeId       String
   store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
   items         OrderItem[]

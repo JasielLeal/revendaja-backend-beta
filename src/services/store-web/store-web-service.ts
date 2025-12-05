@@ -127,14 +127,22 @@ export class StoreWebService {
         (product) => product.status === status
       );
     }
+    
+
+    const total = await this.storeProductRepository.countStoreProducts(
+      store.id,
+      search || ""
+    );
+
+    const totalPages = Math.ceil(total / pageSize);
 
     return {
       data: filteredData,
       pagination: {
         page,
         pageSize,
-        total: filteredData.length,
-        totalPages: Math.ceil(filteredData.length / pageSize),
+        total: total,
+        totalPages: totalPages,
       },
     };
   }

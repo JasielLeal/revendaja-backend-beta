@@ -14,6 +14,10 @@ export class OrderPrismaRepository implements OrderRepository {
         customerName: data.customerName,
         customerPhone: data.customerPhone,
         paymentMethod: data.paymentMethod,
+        isDelivery: data.isDelivery,
+        deliveryStreet: data.deliveryStreet,
+        deliveryNumber: data.deliveryNumber,
+        deliveryNeighborhood: data.deliveryNeighborhood,
         items: {
           create: data.items.map((item) => ({
             imgUrl: item.imgUrl,

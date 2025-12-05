@@ -39,6 +39,15 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     return product;
   }
 
+  async countStoreProducts(storeId: string, query?: string) {
+    return prisma.storeProduct.count({
+      where: {
+        storeId,
+        name: query ? { contains: query, mode: "insensitive" } : undefined,
+      },
+    });
+  }
+
   async findAllStoreProducts(
     page: number,
     pageSize: number,

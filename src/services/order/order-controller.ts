@@ -23,21 +23,37 @@ export async function OrderController(app: FastifyTypeInstance) {
         tags: ["Orders"],
         description: "Create a new order",
         security: [{ bearerAuth: [] }], // Se estiver usando JWT
-        body: z.object({
-          customerName: z.string().min(1),
-          customerPhone: z.string().min(1).optional(),
-          status: z.string().min(1).optional(),
-          paymentMethod: z.string(),
-          createdAt: z.string().optional(),
-          items: z
-            .array(
-              z.object({
-                storeProductId: z.string().min(1),
-                quantity: z.number().min(1),
-              })
-            )
-            .min(1, "Order must have at least one item"),
-        }),
+        body: z
+          .object({
+            customerName: z.string().min(1),
+            customerPhone: z.string().min(1).optional(),
+            status: z.string().min(1).optional(),
+            paymentMethod: z.string(),
+            createdAt: z.string().optional(),
+            isDelivery: z.boolean().optional().default(false),
+            deliveryStreet: z.string().min(1).optional(),
+            deliveryNumber: z.string().min(1).optional(),
+            deliveryNeighborhood: z.string().min(1).optional(),
+            items: z
+              .array(
+                z.object({
+                  storeProductId: z.string().min(1),
+                  quantity: z.number().min(1),
+                })
+              )
+              .min(1, "Order must have at least one item"),
+          })
+          .refine(
+            (payload) =>
+              !payload.isDelivery ||
+              (payload.deliveryStreet &&
+                payload.deliveryNumber &&
+                payload.deliveryNeighborhood),
+            {
+              message: "Delivery address is required when isDelivery is true",
+              path: ["deliveryStreet"],
+            }
+          ),
         response: {
           201: z.object({
             message: z.string().default("Order created successfully"),
@@ -67,8 +83,18 @@ export async function OrderController(app: FastifyTypeInstance) {
     },
     async (req, reply) => {
       try {
-        const { customerName, customerPhone, items, status, paymentMethod, createdAt } =
-          req.body;
+        const {
+          customerName,
+          customerPhone,
+          items,
+          status,
+          paymentMethod,
+          createdAt,
+          isDelivery,
+          deliveryStreet,
+          deliveryNumber,
+          deliveryNeighborhood,
+        } = req.body;
         const userId = req.user.id; // Do seu middleware de autenticação
 
         const order = await orderService.createOrder(
@@ -78,6 +104,10 @@ export async function OrderController(app: FastifyTypeInstance) {
             createdAt,
             items,
             paymentMethod,
+            isDelivery,
+            deliveryStreet,
+            deliveryNumber,
+            deliveryNeighborhood,
           },
           userId,
           status
@@ -110,6 +140,106 @@ export async function OrderController(app: FastifyTypeInstance) {
           return reply.status(400).send({ error: err.message });
         }
 
+        return reply.status(err.statusCode || 500).send({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    "/orders/online",
+    {
+      schema: {
+        tags: ["Orders"],
+        description: "Create a new online order",
+        security: [{ bearerAuth: [] }], // Se estiver usando JWT
+        body: z
+          .object({
+            customerName: z.string().min(1),
+            customerPhone: z.string().min(1).optional(),
+            paymentMethod: z.string(),
+            subdomain: z.string().min(1),
+            createdAt: z.string().optional(),
+            isDelivery: z.boolean().optional().default(false),
+            deliveryStreet: z.string().min(1).optional(),
+            deliveryNumber: z.string().min(1).optional(),
+            deliveryNeighborhood: z.string().min(1).optional(),
+            items: z
+              .array(
+                z.object({
+                  storeProductId: z.string().min(1),
+                  quantity: z.number().min(1),
+                })
+              )
+              .min(1, "Order must have at least one item"),
+          })
+          .refine(
+            (payload) =>
+              !payload.isDelivery ||
+              (payload.deliveryStreet &&
+                payload.deliveryNumber &&
+                payload.deliveryNeighborhood),
+            {
+              message: "Delivery address is required when isDelivery is true",
+              path: ["deliveryStreet"],
+            }
+          ),
+      },
+    },
+
+    async (req, reply) => {
+      try {
+        const {
+          customerName,
+          customerPhone,
+          items,
+          subdomain,
+          paymentMethod,
+          createdAt,
+          isDelivery,
+          deliveryStreet,
+          deliveryNumber,
+          deliveryNeighborhood,
+        } = req.body;
+        // Do seu middleware de autenticação
+        const order = await orderService.onlineOrderCreate(
+          {
+            customerName,
+            customerPhone,
+            items,
+            paymentMethod,
+            createdAt,
+            isDelivery,
+            deliveryStreet,
+            deliveryNumber,
+            deliveryNeighborhood,
+          },
+         subdomain
+        );
+
+        return reply.status(201).send({
+          message: "Order created successfully",
+          order: {
+            id: order.id,
+            orderNumber: order.orderNumber,
+            total: order.total,
+            status: order.status,
+            paymentMethod: order.paymentMethod,
+          },
+        });
+      } catch (err: any) {
+        // Tratamento específico de erros
+        if (err.message.includes("not found")) {
+          return reply.status(404).send({ error: err.message });
+        }
+        if (
+          err.message.includes("stock") ||
+          err.message.includes("insufficient")
+        ) {
+          return reply.status(409).send({ error: err.message });
+        }
+        if (err.message.includes("Product not found")) {
+          return reply.status(400).send({ error: err.message });
+        }
         return reply.status(err.statusCode || 500).send({ error: err.message });
       }
     }

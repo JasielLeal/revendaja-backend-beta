@@ -46,7 +46,7 @@ export async function StoreController(app: FastifyTypeInstance) {
         const userId = req.user.id;
 
         const store = await storeService.createStore(
-          { name, address, phone, primaryColor, subdomain: "", userId: "" },
+          { name, address, phone, primaryColor, subdomain: "", userId: "", bannerId: '2e173f00-7b7d-4082-ba19-22b8be5a9b16' },
           userId
         );
         return reply.status(201).send({
@@ -161,55 +161,55 @@ export async function StoreController(app: FastifyTypeInstance) {
   );
 
   // Atualizar banner da loja
-  app.patch(
-    "/stores/me/banner",
-    {
-      schema: {
-        tags: ["Stores"],
-        description: "Update store banner",
-        body: z.object({
-          bannerId: z.string().min(1, "Banner ID is required"),
-        }),
-        response: {
-          200: z.object({
-            Success: z.string(),
-            Code: z.string(),
-            message: z.string(),
-          }),
-          400: z.object({
-            error: z.string(),
-          }),
-          404: z.object({
-            error: z.string(),
-          }),
-          500: z.object({
-            error: z.string(),
-          }),
-        },
-      },
-      preHandler: [verifyToken],
-    },
-    async (req, reply) => {
-      try {
-        const { bannerId } = req.body;
-        const userId = req.user.id;
+  // app.patch(
+  //   "/stores/me/banner",
+  //   {
+  //     schema: {
+  //       tags: ["Stores"],
+  //       description: "Update store banner",
+  //       body: z.object({
+  //         bannerId: z.string().min(1, "Banner ID is required"),
+  //       }),
+  //       response: {
+  //         200: z.object({
+  //           Success: z.string(),
+  //           Code: z.string(),
+  //           message: z.string(),
+  //         }),
+  //         400: z.object({
+  //           error: z.string(),
+  //         }),
+  //         404: z.object({
+  //           error: z.string(),
+  //         }),
+  //         500: z.object({
+  //           error: z.string(),
+  //         }),
+  //       },
+  //     },
+  //     preHandler: [verifyToken],
+  //   },
+  //   async (req, reply) => {
+  //     try {
+  //       const { bannerId } = req.body;
+  //       const userId = req.user.id;
 
-        await storeService.updateBanner(userId, bannerId);
+  //       await storeService.updateBanner(userId, bannerId);
 
-        return reply.status(200).send({
-          Success: "True",
-          Code: "200",
-          message: "Banner updated successfully",
-        });
-      } catch (err: any) {
-        if (err.message.includes("not found")) {
-          return reply.status(404).send({ error: "Store not found" });
-        }
-        if (err.message.includes("Invalid banner")) {
-          return reply.status(400).send({ error: "Invalid banner ID" });
-        }
-        return reply.status(500).send({ error: err.message });
-      }
-    }
-  );
+  //       return reply.status(200).send({
+  //         Success: "True",
+  //         Code: "200",
+  //         message: "Banner updated successfully",
+  //       });
+  //     } catch (err: any) {
+  //       if (err.message.includes("not found")) {
+  //         return reply.status(404).send({ error: "Store not found" });
+  //       }
+  //       if (err.message.includes("Invalid banner")) {
+  //         return reply.status(400).send({ error: "Invalid banner ID" });
+  //       }
+  //       return reply.status(500).send({ error: err.message });
+  //     }
+  //   }
+  // );
 }

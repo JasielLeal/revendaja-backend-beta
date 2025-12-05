@@ -14,6 +14,10 @@ export interface CreateOrderDTO {
     quantity: number;
   }>;
   total?: number; // Pode ser opcional se você calcular
+  isDelivery?: boolean;
+  deliveryStreet?: string;
+  deliveryNumber?: string;
+  deliveryNeighborhood?: string;
 }
 
 export class OrderService {
@@ -50,6 +54,10 @@ export class OrderService {
       status: status,
       paymentMethod: data.paymentMethod,
       createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
+      isDelivery: data.isDelivery,
+      deliveryStreet: data.deliveryStreet,
+      deliveryNumber: data.deliveryNumber,
+      deliveryNeighborhood: data.deliveryNeighborhood,
     });
 
     // 3. Salva no banco
@@ -110,6 +118,38 @@ export class OrderService {
     return { preparedItems, total };
   }
 
+  async onlineOrderCreate(data: CreateOrderDTO, subdomain: string) {
+    const store = await this.storeRepository.findBySubdomain(subdomain);
+
+    if (!store) {
+      throw new Error("Store not found");
+    }
+
+    const orderNumber = await generateOrderNumber();
+
+    // Prepara os itens (busca preços e valida estoque)
+    const { preparedItems, total } = await this.prepareOrderItems(data.items);
+    const orderEntity = new OrderEntity({
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      storeId: store.id,
+      items: preparedItems,
+      orderNumber: orderNumber,
+      total: data.total || total, // Usa o total fornecido ou o calculado
+      status: "pending",
+      paymentMethod: data.paymentMethod,
+      createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
+      isDelivery: data.isDelivery,
+      deliveryStreet: data.deliveryStreet,
+      deliveryNumber: data.deliveryNumber,
+      deliveryNeighborhood: data.deliveryNeighborhood,
+    });
+
+    await this.orderRepository.createOrderWithItems(orderEntity);
+
+    return orderEntity
+  }
+  
   async getDashboardData(userId: string, from?: string, to?: string) {
     const store = await this.storeRepository.findyStoreByUserId(userId);
 
@@ -159,7 +199,7 @@ export class OrderService {
         status
       );
 
-      console.log(orders)
+    console.log(orders);
 
     // Calcula métricas com base nos pedidos da página
     const totalOrders = orders.length;
