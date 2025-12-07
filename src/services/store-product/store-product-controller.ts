@@ -119,6 +119,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
             .default("10")
             .transform((val) => parseInt(val, 10)),
           query: z.string().optional(),
+          category: z.string().optional(),
         }),
         response: {
           200: z.object({
@@ -160,7 +161,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
     },
     async (req, reply) => {
       try {
-        const { page, pageSize, query } = req.query;
+        const { page, pageSize, query, category } = req.query;
         const { id } = req.user;
 
         console.log(query)
@@ -169,7 +170,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           page,
           pageSize,
           id,
-          query
+          query,
+          category
         );
 
       

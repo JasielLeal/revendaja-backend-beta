@@ -70,7 +70,8 @@ export class StoreProductService {
     page: number,
     pageSize: number,
     userId: string,
-    query?: string
+    query?: string,
+    category?: string
   ) {
     const store = await this.storeRepository.findyStoreByUserId(userId);
 
@@ -82,7 +83,8 @@ export class StoreProductService {
       page,
       pageSize,
       store.id,
-      query
+      query,
+      category
     );
 
     return products;

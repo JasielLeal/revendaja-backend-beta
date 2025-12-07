@@ -52,7 +52,8 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     page: number,
     pageSize: number,
     storeId: string,
-    query?: string
+    query?: string,
+    category?: string
   ) {
     const skip = (page - 1) * pageSize;
     const take = pageSize;
@@ -70,6 +71,10 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
         { company: { contains: query, mode: "insensitive" } },
         { category: { contains: query, mode: "insensitive" } },
       ];
+    }
+
+    if (category) {
+       where.category = { contains: category, mode: "insensitive" };
     }
 
     // Lista de produtos paginados (busca exata/contains)

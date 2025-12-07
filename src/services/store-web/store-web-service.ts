@@ -110,24 +110,20 @@ export class StoreWebService {
       page,
       pageSize,
       store.id,
-      search || ""
+      search || "",
+      category
     );
+
+    console.log(result)
 
     // Filtrar por categoria e status se necessário
     let filteredData = result.data;
-
-    if (category) {
-      filteredData = filteredData.filter(
-        (product) => product.category === category
-      );
-    }
 
     if (status) {
       filteredData = filteredData.filter(
         (product) => product.status === status
       );
     }
-    
 
     const total = await this.storeProductRepository.countStoreProducts(
       store.id,

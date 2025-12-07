@@ -20,7 +20,8 @@ export interface StoreProductRepository {
     page: number,
     pageSize: number,
     storeId: string,
-    query: string
+    query: string,
+    category?: string
   );
   countStoreProducts(storeId: string, query?: string)
   updatedStock(productId: string, newQuantity: number): Promise<void>;

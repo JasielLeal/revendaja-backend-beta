@@ -149,7 +149,7 @@ export class OrderService {
 
     return orderEntity
   }
-  
+
   async getDashboardData(userId: string, from?: string, to?: string) {
     const store = await this.storeRepository.findyStoreByUserId(userId);
 
@@ -198,8 +198,6 @@ export class OrderService {
         search,
         status
       );
-
-    console.log(orders);
 
     // Calcula métricas com base nos pedidos da página
     const totalOrders = orders.length;
