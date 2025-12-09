@@ -3,6 +3,9 @@ import { OrderRepository } from "./order-repository";
 import { StoreRepository } from "../store/store-repository";
 import { generateOrderNumber } from "@/lib/utils";
 import { StoreProductRepository } from "../store-product/store-product-repository";
+import { emitOrderCreated, emitLowStock } from "@/lib/socket";
+import { PushNotificationService } from "@/lib/push-notification";
+import { PushTokenRepository } from "../push-token/push-token-repository";
 
 export interface CreateOrderDTO {
   paymentMethod: string;
@@ -77,6 +80,15 @@ export class OrderService {
         item.storeProductId,
         newQuantity
       );
+
+      // Emitir evento de estoque baixo se necessário
+      if (newQuantity <= 5) {
+        emitLowStock(store.id, {
+          productId: item.storeProductId,
+          productName: product.name,
+          currentStock: newQuantity,
+        });
+      }
     }
 
     return createdOrder;
@@ -145,9 +157,56 @@ export class OrderService {
       deliveryNeighborhood: data.deliveryNeighborhood,
     });
 
-    await this.orderRepository.createOrderWithItems(orderEntity);
+    const createdOrder = await this.orderRepository.createOrderWithItems(
+      orderEntity
+    );
 
-    return orderEntity
+    // Atualiza estoque e emite eventos
+    for (const item of preparedItems) {
+      const product = await this.storeProductRepository.findById(
+        item.storeProductId
+      );
+      if (!product) continue;
+
+      const newQuantity = product.quantity - item.quantity;
+      await this.storeProductRepository.updatedStock(
+        item.storeProductId,
+        newQuantity
+      );
+    }
+
+    // Enviar notificações push apenas para o dono da loja
+    try {
+      const pushTokenRepository = new PushTokenRepository();
+      const tokensByProvider =
+        await pushTokenRepository.findUserTokensByStoreIdGroupedByProvider(
+          store.userId,
+          store.id
+        );
+
+      const formattedTotal = (Number(createdOrder.total) / 100).toLocaleString(
+        "pt-BR",
+        {
+          style: "currency",
+          currency: "BRL",
+        }
+      );
+
+      await PushNotificationService.sendToAll(tokensByProvider, {
+        title: "Novo pedido online",
+        body: `${formattedTotal} em novo pedido. Veja os detalhes.`,
+        data: {
+          orderId: createdOrder.id,
+          orderNumber: createdOrder.orderNumber,
+          total: createdOrder.total.toString(),
+          source: "online",
+        },
+      });
+    } catch (error) {
+      console.error("❌ Erro ao enviar notificações push:", error);
+    }
+
+    return createdOrder;
   }
 
   async getDashboardData(userId: string, from?: string, to?: string) {

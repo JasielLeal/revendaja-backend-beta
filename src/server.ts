@@ -20,6 +20,9 @@ import { PaymentController } from "./services/webhook/payment-controller";
 import { StoreWebController } from "./services/store-web/store-web-controller";
 import { BannerController } from "./services/banner/banner-controller";
 import { WhatsappWebhookController } from "./services/whatsapp/whatsapp-webhook-controller";
+import { PushTokenController } from "./services/push-token/push-token-controller";
+import { Server } from "socket.io";
+import { initializeSocket } from "./lib/socket";
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
 
@@ -83,6 +86,7 @@ app.register(PaymentController, { prefix: "/api" });
 app.register(StoreWebController, { prefix: "/api/web" });
 app.register(BannerController, { prefix: "/api" });
 app.register(WhatsappWebhookController, { prefix: "/api" });
+app.register(PushTokenController, { prefix: "/api" });
 
 app.register(fastifySwaggerUi, {
   routePrefix: "/docs",
@@ -95,4 +99,15 @@ const port = Number(process.env.PORT) || 3333;
 
 app.listen({ port, host: "0.0.0.0" }).then(() => {
   console.log(`🚀 Server running on port ${port}`);
+
+  // Inicializar Socket.IO após o servidor estar rodando
+  const io = new Server(app.server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"],
+    },
+  });
+
+  initializeSocket(io);
+  console.log(`📡 Socket.IO initialized`);
 });

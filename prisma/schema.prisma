@@ -29,6 +29,7 @@ model User {
   updatedAt        DateTime  @updatedAt
 
   stores           Store[]
+  pushTokens       PushToken[]
 
   @@map("users")
 }
@@ -65,8 +66,9 @@ model Store {
   updatedAt     DateTime        @updatedAt
 
   storeProducts StoreProduct[]
+  orders        Order[]
+  pushTokens    PushToken[]
   @@map("stores")
-  Order         Order[]
 }
 
 model StoreProduct {
@@ -154,3 +156,23 @@ model Banner {
   stores      Store[]
   @@map("banners")
 }
+
+model PushToken {
+  id            String    @id @default(uuid())
+  token         String    @unique
+  provider      String    // "expo", "fcm" ou "apns"
+  userId        String    // Dono da loja que receberá notificações
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeId       String
+  store         Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  deviceId      String?   // Identificador único do dispositivo
+  deviceName    String?   // Nome do dispositivo
+  isActive      Boolean   @default(true)
+  lastUsedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([token, storeId])
+  @@map("push_tokens")
+}
+

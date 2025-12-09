@@ -154,10 +154,10 @@ export async function OrderController(app: FastifyTypeInstance) {
         security: [{ bearerAuth: [] }], // Se estiver usando JWT
         body: z
           .object({
-            customerName: z.string().min(1),
-            customerPhone: z.string().min(1).optional(),
-            paymentMethod: z.string(),
-            subdomain: z.string().min(1),
+            customerName: z.string().min(1).default("Cliente Online"),
+            customerPhone: z.string().min(1).optional().default("8499999-9999"),
+            paymentMethod: z.string().default("Dinheiro"),
+            subdomain: z.string().min(1).default("lealperfumaria"),
             createdAt: z.string().optional(),
             isDelivery: z.boolean().optional().default(false),
             deliveryStreet: z.string().min(1).optional(),
