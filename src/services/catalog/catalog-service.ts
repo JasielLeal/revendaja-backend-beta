@@ -15,7 +15,17 @@ export class CatalogService {
     }
 
     const products = await this.catalogRepository.findAll(page, pageSize, query);
+    const totalProducts = await this.catalogRepository.count(query);
+    const totalPages = Math.ceil(totalProducts / pageSize);
 
-    return products;
+    return {
+      products,
+      pagination: {
+        currentPage: page,
+        pageSize,
+        totalProducts,
+        totalPages,
+      },
+    };
   }
 }

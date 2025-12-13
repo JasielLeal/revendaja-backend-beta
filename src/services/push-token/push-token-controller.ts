@@ -49,8 +49,6 @@ export async function PushTokenController(app: FastifyTypeInstance) {
         const userId = req.user.id;
         const { token, provider, deviceId, deviceName } = req.body;
 
-        console.log("User ID:", userId, "Token:", token, "Provider:", provider, "Device ID:", deviceId, "Device Name:", deviceName);
-
         const pushToken = await repository.upsert({
           token,
           provider,

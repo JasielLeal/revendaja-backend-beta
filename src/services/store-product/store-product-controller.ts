@@ -28,7 +28,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           catalogId: z.number().min(1), // Mudei para number pois no schema é Int
           price: z.number().min(0.01).optional(), // Corrigi o .optional
           quantity: z.number().min(0).default(0), // Permite 0 como quantidade inicial
-          validityDate: z.string().optional().default("2025-12-31"), // Data de validade do produto
+          validityDate: z.string().optional().default("2025-12-31").nullable(), // Data de validade do produto
           costPrice: z.number().min(0).optional(),
         }),
         response: {
@@ -310,7 +310,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
             imgUrl: z.string(),
             company: z.string(),
             category: z.string(),
-            status: z.enum(["Active", "Inactive"]),
+            status: z.enum(["active", "inactive"]),
           }),
           404: z.object({
             error: z.string(),
@@ -327,9 +327,9 @@ export async function StoreProductController(app: FastifyTypeInstance) {
         const { barcode } = req.params;
         const { id } = req.user;
 
-        console.log("🔍 Buscando produto com código de barras:", barcode);
-
         const product = await storeProductService.findByBarcode(barcode, id);
+
+        console.log("✅ Produto encontrado:", product);
 
         if (!product) {
           return reply.status(404).send({
@@ -347,7 +347,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           company: product.company,
           imgUrl: product.imgUrl || "",
           category: product.category || "",
-          status: (product.status || "Active") as "Active" | "Inactive",
+          status: (product.status || "active") as "active" | "inactive",
         };
 
         return reply.status(200).send(serializedProduct);

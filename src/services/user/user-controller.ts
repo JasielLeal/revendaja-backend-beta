@@ -57,6 +57,8 @@ export async function UserController(app: FastifyTypeInstance) {
             id: z.string(),
             name: z.string().nullable(),
             email: z.string(),
+            plan: z.string(),
+            createdAt: z.string(),
             firstAccess: z.boolean(),
             tokenAcess: z.string(),
           }),

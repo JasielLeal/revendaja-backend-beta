@@ -31,6 +31,7 @@ export async function CatalogController(app: FastifyTypeInstance) {
             .default("10")
             .transform((val) => parseInt(val, 10))
             .pipe(z.number().min(1).max(100)),
+          query: z.string().optional(),
         }),
         response: {
           200: z.object({
@@ -47,6 +48,8 @@ export async function CatalogController(app: FastifyTypeInstance) {
             ),
             page: z.number(),
             pageSize: z.number(),
+            totalProducts: z.number(),
+            totalPages: z.number(),
           }),
           400: z.object({
             error: z.string(),
@@ -61,14 +64,13 @@ export async function CatalogController(app: FastifyTypeInstance) {
     async (req, reply) => {
      
       try {
-        const { page, pageSize } = req.query;
+        const { page, pageSize, query } = req.query;
 
         const userId = req.user.id;
 
-        const products = await catalogService.getAll(userId, page, pageSize);
-
+        const result = await catalogService.getAll(userId, page, pageSize, query);
         return reply.status(200).send({
-          products: products.map((product) => ({
+          products: result.products.map((product) => ({
             id: product.id,
             name: product.name,
             price: product.normalPrice,
@@ -78,6 +80,8 @@ export async function CatalogController(app: FastifyTypeInstance) {
           })),
           page,
           pageSize,
+          totalProducts: result.pagination.totalProducts,
+          totalPages: result.pagination.totalPages,
         });
       } catch (error: any) {
 

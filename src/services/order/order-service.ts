@@ -3,7 +3,11 @@ import { OrderRepository } from "./order-repository";
 import { StoreRepository } from "../store/store-repository";
 import { generateOrderNumber } from "@/lib/utils";
 import { StoreProductRepository } from "../store-product/store-product-repository";
-import { emitOrderCreated, emitLowStock } from "@/lib/socket";
+import {
+  emitOrderCreated,
+  emitLowStock,
+  emitOnlineOrderCreated,
+} from "@/lib/socket";
 import { PushNotificationService } from "@/lib/push-notification";
 import { PushTokenRepository } from "../push-token/push-token-repository";
 
@@ -193,8 +197,8 @@ export class OrderService {
       );
 
       await PushNotificationService.sendToAll(tokensByProvider, {
-        title: "Novo pedido online",
-        body: `${formattedTotal} em novo pedido. Veja os detalhes.`,
+        title: "Pedido online",
+        body: `Um pedido no valor de ${formattedTotal} acabou de ser feito. Veja os detalhes.`,
         data: {
           orderId: createdOrder.id,
           orderNumber: createdOrder.orderNumber,
@@ -205,6 +209,20 @@ export class OrderService {
     } catch (error) {
       console.error("❌ Erro ao enviar notificações push:", error);
     }
+
+    // Emitir evento de venda online criada via Socket.IO para invalidar cache no frontend
+    emitOnlineOrderCreated(store.userId, {
+      id: createdOrder.id,
+      orderNumber: createdOrder.orderNumber,
+      customerName: createdOrder.customerName,
+      customerPhone: createdOrder.customerPhone,
+      total: createdOrder.total,
+      status: createdOrder.status,
+      paymentMethod: createdOrder.paymentMethod,
+      items: createdOrder.items,
+      isDelivery: createdOrder.isDelivery,
+      createdAt: createdOrder.createdAt,
+    });
 
     return createdOrder;
   }

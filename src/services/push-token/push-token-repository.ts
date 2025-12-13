@@ -122,16 +122,13 @@ export class PushTokenRepository {
   }
 
   async upsert(data: CreatePushTokenDTO) {
-    
-    console.log("Upsert", data);
+  
 
     const store = await prisma.store.findFirst({
       where: {
         userId: data.userId,
       },
     });
-
-    console.log("Upsert Store:", store);
     
     return prisma.pushToken.upsert({
       where: { token: data.token },

@@ -29,4 +29,14 @@ export class CatalogPrismaRepository implements CatalogRepository {
 
     return catalog;
   }
+
+  async count(query?: string): Promise<number> {
+    return prisma.catalog.count({
+      where: query
+        ? {
+            name: { contains: query, mode: "insensitive" },
+          }
+        : {},
+    });
+  }
 }

@@ -48,6 +48,8 @@ export class UserService {
     id: string;
     name: string | null;
     email: string;
+    plan: string;
+    createdAt: string;
     firstAccess: boolean;
     tokenAcess: string;
   }> {
@@ -82,6 +84,8 @@ export class UserService {
       id: user.id,
       name: user.name,
       email: user.email,
+      plan: user.plan,
+      createdAt: user.createdAt.toISOString(),
       firstAccess: user.firstAccess,
       tokenAcess: token,
     };

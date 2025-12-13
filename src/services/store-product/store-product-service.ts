@@ -47,6 +47,10 @@ export class StoreProductService {
       throw new Error("Produto já existe na loja");
     }
 
+    if (data.validityDate == null || undefined) {
+      data.validityDate = new Date();
+    }
+
     await this.storeProductRepository.createStoreProduct({
       name: catalogProduct.name,
       price: finalPrice,

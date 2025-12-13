@@ -50,3 +50,16 @@ export function emitLowStock(storeId: string, productData: any) {
   io.to(`store:${storeId}`).emit("product:low-stock", productData);
   console.log(`📢 Evento product:low-stock emitido para loja ${storeId}`);
 }
+
+// Função helper para emitir eventos de venda online criada (para invalidar cache no frontend)
+export function emitOnlineOrderCreated(storeId: string, orderData: any) {
+  const io = getIO();
+  const room = `store:${storeId}`;
+  // Emite para todos os clientes conectados na sala da loja específica
+  io.to(room).emit("online-order:created", {
+    ...orderData,
+    room, // Adiciona a sala ao payload
+  });
+
+  console.log(`📢 Evento online-order:created emitido para sala: ${room}`);
+}
