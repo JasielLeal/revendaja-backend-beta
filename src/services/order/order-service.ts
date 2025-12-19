@@ -10,6 +10,8 @@ import {
 } from "@/lib/socket";
 import { PushNotificationService } from "@/lib/push-notification";
 import { PushTokenRepository } from "../push-token/push-token-repository";
+import { Plan, canCreateOrder, getPlanLimits } from "@/config/plans";
+import { AppError } from "@/lib/AppError";
 
 export interface CreateOrderDTO {
   paymentMethod: string;
@@ -37,12 +39,18 @@ export class OrderService {
   async createOrder(
     data: CreateOrderDTO,
     userId: string,
-    status: string
+    status: string,
+    userPlan?: Plan
   ): Promise<OrderEntity> {
     const store = await this.storeRepository.findyStoreByUserId(userId);
 
     if (!store) {
       throw new Error("Store not found");
+    }
+
+    // Verifica limite de vendas do plano (se o plano foi passado)
+    if (userPlan) {
+      await this.checkOrderLimit(store.id, userPlan);
     }
 
     const orderNumber = await generateOrderNumber();
@@ -96,6 +104,30 @@ export class OrderService {
     }
 
     return createdOrder;
+  }
+
+  // Verifica se o usuário atingiu o limite de vendas mensais do plano
+  private async checkOrderLimit(storeId: string, plan: Plan): Promise<void> {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const from = firstDay.toISOString().split("T")[0];
+    const to = lastDay.toISOString().split("T")[0];
+
+    const currentMonthlyOrders = await this.orderRepository.countOrdersInRange(
+      storeId,
+      from,
+      to
+    );
+
+    if (!canCreateOrder(plan, currentMonthlyOrders)) {
+      const limits = getPlanLimits(plan);
+      throw new AppError(
+        `Você atingiu o limite de ${limits.monthlyOrders} vendas mensais do plano ${plan}. Faça upgrade para continuar vendendo.`,
+        403
+      );
+    }
   }
 
   private async prepareOrderItems(items: CreateOrderDTO["items"]) {

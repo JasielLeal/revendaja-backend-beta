@@ -6,6 +6,7 @@ import z from "zod";
 import { FastifyTypeInstance } from "@/types/fastify-instance";
 import { verifyToken } from "@/middlewares/verify-token";
 import { StorePrismaRepository } from "../store/store-prisma-repository";
+import { Plan } from "@/config/plans";
 
 export async function StoreProductController(app: FastifyTypeInstance) {
   const storeProductRepository = new StoreProductPrismaRepository();
@@ -60,7 +61,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
             validityDate?: string;
             costPrice?: number;
           };
-        const { id } = req.user;
+        const { id, plan } = req.user;
+        const userPlan = (plan || "Free") as Plan;
 
         // Se price não foi informado, usa o preço sugerido do catálogo
         const finalPrice = price;
@@ -69,6 +71,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           price: finalPrice,
           quantity,
           userId: id,
+          userPlan,
           validityDate: new Date(validityDate),
           costPrice: costPrice,
         });
@@ -164,7 +167,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
         const { page, pageSize, query, category } = req.query;
         const { id } = req.user;
 
-        console.log(query)
+        console.log(query);
 
         const result = await storeProductService.findAllStoreProducts(
           page,
@@ -174,7 +177,6 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           category
         );
 
-      
         // converter Date -> string ISO
         const serializedResult = {
           ...result,
@@ -185,7 +187,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           })),
         };
 
-       console.log("✅ Result");
+        console.log("✅ Result");
 
         return reply.status(200).send(serializedResult);
       } catch (error: any) {

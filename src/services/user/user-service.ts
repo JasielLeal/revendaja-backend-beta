@@ -7,10 +7,13 @@ import { sendVerificationEmail } from "@/mail/templates/send-verification-email"
 import jwt from "jsonwebtoken";
 import { forgotPassword } from "@/mail/templates/forgot-password";
 import { passwordChanged } from "@/mail/templates/password-changed";
-import { sendWhatsappMessage } from "@/whatsapp/sendWhatsapp";
+import { StoreRepository } from "../store/store-repository";
 
 export class UserService {
-  constructor(private userRepository: UserRepository) {}
+  constructor(
+    private userRepository: UserRepository,
+    private storeRepository: StoreRepository
+  ) {}
 
   async userCreate(data: UserEntity): Promise<void> {
     const userAlreadyExists = await this.userRepository.findByEmail(data.email);
@@ -41,6 +44,12 @@ export class UserService {
     return;
   }
 
+  async checkEmailAvailability(email: string): Promise<{ available: boolean }> {
+    const user = await this.userRepository.findByEmail(email);
+
+    return { available: !user };
+  }
+
   async signIn(
     email: string,
     password: string
@@ -51,7 +60,8 @@ export class UserService {
     plan: string;
     createdAt: string;
     firstAccess: boolean;
-    tokenAcess: string;
+    token: string;
+    store: boolean | null;
   }> {
     console.time("signin");
     console.time("find");
@@ -60,6 +70,12 @@ export class UserService {
     if (!user) {
       throw new AppError("Invalid email or password", 401);
     }
+
+    const store = await this.storeRepository.findyStoreByUserId(user.id);
+
+    // if (!store) {
+    //   throw new AppError("Store not found for this user", 404);
+    // }
 
     console.time("bcrypt");
     const doesPasswordMatch = await compare(password, user.password);
@@ -74,9 +90,20 @@ export class UserService {
     }
 
     console.time("jwt");
-    const token = jwt.sign({ id: user.id, email: user.email, name: user.name, role: user.role, plan: user.plan, firstAccess: user.firstAccess }, process.env.JWT_SECRET, {
-      expiresIn: "8h",
-    });
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        plan: user.plan,
+        firstAccess: user.firstAccess,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "8h",
+      }
+    );
     console.timeEnd("jwt");
     console.timeEnd("signin");
 
@@ -87,7 +114,8 @@ export class UserService {
       plan: user.plan,
       createdAt: user.createdAt.toISOString(),
       firstAccess: user.firstAccess,
-      tokenAcess: token,
+      token: token,
+      store: store ? true : false,
     };
   }
 
@@ -118,33 +146,45 @@ export class UserService {
     if (!user) {
       throw new AppError("User not found", 404);
     }
-    const tokenAccess = jwt.sign(
-      { email: user.email },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "1h",
-      }
-    );
 
-    await this.userRepository.updateTokenAccess(user.email, tokenAccess);
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await this.userRepository.updateTokenAccess(user.email, otpCode);
 
     sendEmail({
       to: user.email,
-      subject: "Password Reset Request",
-      html: forgotPassword(
-        user.name,
-        `http://localhost:3000/change-password?token=${tokenAccess}`
-      ),
+      subject: "Código de Recuperação de Senha",
+      html: forgotPassword(user.name, otpCode),
     });
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<void> {
-    let payload: any;
-    payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await this.userRepository.findByEmail(payload.email);
+  async verifyOtp(email: string, otpCode: string): Promise<{ valid: boolean }> {
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      throw new AppError("Invalid token", 400);
+      throw new AppError("User not found", 404);
+    }
+
+    if (!user.tokenAccess || user.tokenAccess !== otpCode) {
+      return { valid: false };
+    }
+
+    return { valid: true };
+  }
+
+  async resetPassword(
+    email: string,
+    otpCode: string,
+    newPassword: string
+  ): Promise<void> {
+    const user = await this.userRepository.findByEmail(email);
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    if (!user.tokenAccess || user.tokenAccess !== otpCode) {
+      throw new AppError("Invalid or expired code", 400);
     }
 
     const passwordHash = await hash(newPassword, 6);
@@ -153,7 +193,7 @@ export class UserService {
     await this.userRepository.updateTokenAccess(user.email, "");
     sendEmail({
       to: user.email,
-      subject: "Password Successfully Reset",
+      subject: "Senha Alterada com Sucesso",
       html: passwordChanged(user.name),
     });
   }

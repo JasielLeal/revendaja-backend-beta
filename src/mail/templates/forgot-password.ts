@@ -1,4 +1,4 @@
-export function forgotPassword(name: string, url: string): string {
+export function forgotPassword(name: string, otpCode: string): string {
   return `
       <div style="background-color: #f9fafb; padding: 40px 0; font-family: 'Geist', 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #111827;">
         <div style="max-width: 480px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); padding: 40px; text-align: center;">
@@ -15,20 +15,21 @@ export function forgotPassword(name: string, url: string): string {
           <h2 style="color: #111827; margin-bottom: 12px;">Redefinir sua senha</h2>
 
           <!-- Texto -->
-          <p style="color: #6b7280; font-size: 15px; line-height: 22px; margin-bottom: 32px;">
+          <p style="color: #6b7280; font-size: 15px; line-height: 22px; margin-bottom: 24px;">
            <strong>Olá! ${name}</strong><br>
 Você solicitou redefinir sua senha na <strong>Odontly</strong>.<br>
-Clique no botão abaixo para criar uma nova senha e recuperar o acesso à sua conta.
+Use o código abaixo para criar uma nova senha.
           </p>
 
-          <a href="${url}" style="display: inline-block; background-color: #007AFF; color: #fff; text-decoration: none; font-weight: 500; padding: 12px 28px; border-radius: 6px; font-size: 15px;">
-  Redefinir Senha
-</a>
+          <!-- OTP Code -->
+          <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+            <p style="font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #007AFF; margin: 0;">${otpCode}</p>
+          </div>
 
           <!-- Rodapé -->
           <p style="color: #9ca3af; font-size: 13px; margin-top: 36px;">
-            Se você não criou uma conta, ignore este e-mail.<br>
-            Este link expira em 24 horas.
+            Se você não solicitou a redefinição de senha, ignore este e-mail.<br>
+            Este código expira em 1 hora.
           </p>
         </div>
 

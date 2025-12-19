@@ -2,6 +2,8 @@ import { FastifyTypeInstance } from "@/types/fastify-instance";
 import { ProductPrismaRepository } from "./product-prisma-repository";
 import { ProductService } from "./product-service";
 import z from "zod";
+import { verifyToken } from "@/middlewares/verify-token";
+import { requireAdmin } from "@/middlewares/check-permission";
 
 export async function ProductController(app: FastifyTypeInstance) {
   const productRepository = new ProductPrismaRepository();
@@ -19,8 +21,17 @@ export async function ProductController(app: FastifyTypeInstance) {
           200: z.object({
             message: z.string().default("Products migrated successfully"),
           }),
+          401: z.object({
+            error: z.string().default("Unauthorized"),
+          }),
+          403: z.object({
+            error: z
+              .string()
+              .default("Apenas administradores podem realizar esta ação"),
+          }),
         },
       },
+      preHandler: [verifyToken, requireAdmin],
     },
     async (req, reply) => {
       try {

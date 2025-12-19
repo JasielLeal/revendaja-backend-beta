@@ -2,6 +2,7 @@ import { StoreEntity } from "@/entities/store-entity";
 import { StoreRepository } from "./store-repository";
 import { UserRepository } from "../user/user-repository";
 import { BannerService } from "../banner/banner-service";
+import { th } from "zod/locales";
 
 export class StoreService {
   constructor(
@@ -54,5 +55,17 @@ export class StoreService {
     }
 
     await this.storeRepository.updatePrimaryColor(store.id!, primaryColor);
+  }
+
+  async verifyDisponibilityTheDomainStore(
+    domain: string
+  ): Promise<{ available: boolean }> {
+    const store = await this.storeRepository.findBySubdomain(domain);
+
+    if(store && store.subdomain === domain){
+      throw new Error("Domain already in use");
+    }
+
+    return { available: !store };
   }
 }

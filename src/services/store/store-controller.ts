@@ -4,11 +4,21 @@ import { StoreService } from "./store-service";
 import { UserPrismaRepository } from "../user/user-prisma-repository";
 import z from "zod";
 import { verifyToken } from "@/middlewares/verify-token";
+import { Plan } from "@/config/plans";
+import { OrderPrismaRepository } from "../order/order-prisma-repository";
+import { StoreProductPrismaRepository } from "../store-product/store-product-prisma-repository";
+import { PlanLimitsService } from "@/lib/plan-limits";
 
 export async function StoreController(app: FastifyTypeInstance) {
   const storeRepository = new StorePrismaRepository();
   const userRepository = new UserPrismaRepository();
+  const orderRepository = new OrderPrismaRepository();
+  const storeProductRepository = new StoreProductPrismaRepository();
   const storeService = new StoreService(storeRepository, userRepository);
+  const planLimitsService = new PlanLimitsService(
+    orderRepository,
+    storeProductRepository
+  );
 
   app.post(
     "/stores",
@@ -46,7 +56,15 @@ export async function StoreController(app: FastifyTypeInstance) {
         const userId = req.user.id;
 
         const store = await storeService.createStore(
-          { name, address, phone, primaryColor, subdomain: "", userId: "", bannerId: '2e173f00-7b7d-4082-ba19-22b8be5a9b16' },
+          {
+            name,
+            address,
+            phone,
+            primaryColor,
+            subdomain: "",
+            userId: "",
+            bannerId: "2e173f00-7b7d-4082-ba19-22b8be5a9b16",
+          },
           userId
         );
         return reply.status(201).send({
@@ -160,56 +178,103 @@ export async function StoreController(app: FastifyTypeInstance) {
     }
   );
 
-  // Atualizar banner da loja
-  // app.patch(
-  //   "/stores/me/banner",
-  //   {
-  //     schema: {
-  //       tags: ["Stores"],
-  //       description: "Update store banner",
-  //       body: z.object({
-  //         bannerId: z.string().min(1, "Banner ID is required"),
-  //       }),
-  //       response: {
-  //         200: z.object({
-  //           Success: z.string(),
-  //           Code: z.string(),
-  //           message: z.string(),
-  //         }),
-  //         400: z.object({
-  //           error: z.string(),
-  //         }),
-  //         404: z.object({
-  //           error: z.string(),
-  //         }),
-  //         500: z.object({
-  //           error: z.string(),
-  //         }),
-  //       },
-  //     },
-  //     preHandler: [verifyToken],
-  //   },
-  //   async (req, reply) => {
-  //     try {
-  //       const { bannerId } = req.body;
-  //       const userId = req.user.id;
+  // Endpoint para consultar uso do plano
+  app.get(
+    "/stores/plan-usage",
+    {
+      schema: {
+        tags: ["Stores"],
+        description: "Get current plan usage information",
+        response: {
+          200: z.object({
+            plan: z.string(),
+            limits: z.object({
+              monthlyOrders: z.number(),
+              maxProducts: z.number(),
+              canUseOnlineStore: z.boolean(),
+              canUseWhatsappIntegration: z.boolean(),
+              canExportReports: z.boolean(),
+              prioritySupport: z.boolean(),
+            }),
+            usage: z.object({
+              monthlyOrders: z.number(),
+              totalProducts: z.number(),
+            }),
+            remaining: z.object({
+              monthlyOrders: z.union([z.number(), z.literal("unlimited")]),
+              products: z.union([z.number(), z.literal("unlimited")]),
+            }),
+          }),
+          401: z.object({
+            error: z.string(),
+          }),
+          404: z.object({
+            error: z.string(),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        const userId = req.user.id;
+        const userPlan = (req.user.plan || "Free") as Plan;
 
-  //       await storeService.updateBanner(userId, bannerId);
+        const store = await storeRepository.findyStoreByUserId(userId);
 
-  //       return reply.status(200).send({
-  //         Success: "True",
-  //         Code: "200",
-  //         message: "Banner updated successfully",
-  //       });
-  //     } catch (err: any) {
-  //       if (err.message.includes("not found")) {
-  //         return reply.status(404).send({ error: "Store not found" });
-  //       }
-  //       if (err.message.includes("Invalid banner")) {
-  //         return reply.status(400).send({ error: "Invalid banner ID" });
-  //       }
-  //       return reply.status(500).send({ error: err.message });
-  //     }
-  //   }
-  // );
+        if (!store) {
+          return reply.status(404).send({ error: "Store not found" });
+        }
+
+        const usageInfo = await planLimitsService.getUsageInfo(
+          store.id,
+          userPlan
+        );
+
+        return reply.status(200).send(usageInfo);
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+  );
+
+  // Endpoint para verificar disponibilidade do domínio da loja
+  app.get(
+    "/stores/domain-availability/:domain",
+    {
+      schema: {
+        tags: ["Stores"],
+        description: "Check store domain availability",
+        params: z.object({
+          domain: z.string().min(1),
+        }),
+        response: {
+          200: z.object({
+            available: z.boolean(),
+          }),
+          400: z.object({
+            error: z.string(),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        const { domain } = req.params;
+        const availability = await storeService.verifyDisponibilityTheDomainStore(
+          domain
+        );
+        return reply.status(200).send(availability);
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+  );
 }

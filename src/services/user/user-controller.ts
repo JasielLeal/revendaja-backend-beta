@@ -3,10 +3,12 @@ import { UserPrismaRepository } from "./user-prisma-repository";
 import { UserService } from "./user-service";
 import { FastifyTypeInstance } from "@/types/fastify-instance";
 import z from "zod";
+import { StorePrismaRepository } from "../store/store-prisma-repository";
 
 export async function UserController(app: FastifyTypeInstance) {
   const userRepository = new UserPrismaRepository();
-  const userService = new UserService(userRepository);
+  const storeRepository = new StorePrismaRepository();
+  const userService = new UserService(userRepository, storeRepository);
 
   //criar users
   app.post(
@@ -41,6 +43,34 @@ export async function UserController(app: FastifyTypeInstance) {
     }
   );
 
+  //check email availability
+  app.post(
+    "/users/check-email",
+    {
+      schema: {
+        tags: ["Users"],
+        description: "Check if email is available",
+        body: z.object({
+          email: z.string().email(),
+        }),
+        response: {
+          200: z.object({
+            available: z.boolean(),
+          }),
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const { email } = req.body;
+        const result = await userService.checkEmailAvailability(email);
+        return reply.status(200).send(result);
+      } catch (err: any) {
+        return reply.status(err.statusCode || 500).send({ error: err.message });
+      }
+    }
+  );
+
   //login
   app.post(
     "/signin",
@@ -60,7 +90,8 @@ export async function UserController(app: FastifyTypeInstance) {
             plan: z.string(),
             createdAt: z.string(),
             firstAccess: z.boolean(),
-            tokenAcess: z.string(),
+            token: z.string(),
+            store: z.boolean().nullable(),
           }),
           401: z.object({
             error: z.string().default("Invalid email or password"),
@@ -150,6 +181,38 @@ export async function UserController(app: FastifyTypeInstance) {
     }
   );
 
+  //verify otp
+  app.post(
+    "/verify-otp",
+    {
+      schema: {
+        tags: ["Users"],
+        description: "Verify if OTP code belongs to user",
+        body: z.object({
+          email: z.string().email(),
+          otpCode: z.string().length(6),
+        }),
+        response: {
+          200: z.object({
+            valid: z.boolean(),
+          }),
+          404: z.object({
+            error: z.string().default("User not found"),
+          }),
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const { email, otpCode } = req.body;
+        const result = await userService.verifyOtp(email, otpCode);
+        return reply.status(200).send(result);
+      } catch (err: any) {
+        return reply.status(err.statusCode || 500).send({ error: err.message });
+      }
+    }
+  );
+
   //reset password
   app.post(
     "/change-password",
@@ -158,7 +221,8 @@ export async function UserController(app: FastifyTypeInstance) {
         tags: ["Users"],
         description: "Reset user password",
         body: z.object({
-          token: z.string(),
+          email: z.string().email(),
+          otpCode: z.string().length(6),
           newPassword: z.string().min(6),
         }),
         response: {
@@ -166,15 +230,15 @@ export async function UserController(app: FastifyTypeInstance) {
             message: z.string().default("Password reset successfully"),
           }),
           400: z.object({
-            error: z.string().default("Invalid token"),
+            error: z.string().default("Invalid or expired code"),
           }),
         },
       },
     },
     async (req, reply) => {
       try {
-        const { token, newPassword } = req.body;
-        await userService.resetPassword(token, newPassword);
+        const { email, otpCode, newPassword } = req.body;
+        await userService.resetPassword(email, otpCode, newPassword);
         return reply.status(200).send();
       } catch (err: any) {
         return reply.status(err.statusCode || 500).send({ error: err.message });

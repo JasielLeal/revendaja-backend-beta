@@ -5,6 +5,7 @@ import { OrderPrismaRepository } from "./order-prisma-repository";
 import { StorePrismaRepository } from "../store/store-prisma-repository";
 import { StoreProductPrismaRepository } from "../store-product/store-product-prisma-repository";
 import { verifyToken } from "@/middlewares/verify-token";
+import { Plan } from "@/config/plans";
 
 export async function OrderController(app: FastifyTypeInstance) {
   const orderRepository = new OrderPrismaRepository();
@@ -96,6 +97,7 @@ export async function OrderController(app: FastifyTypeInstance) {
           deliveryNeighborhood,
         } = req.body;
         const userId = req.user.id; // Do seu middleware de autenticação
+        const userPlan = (req.user.plan || "Free") as Plan;
 
         const order = await orderService.createOrder(
           {
@@ -110,7 +112,8 @@ export async function OrderController(app: FastifyTypeInstance) {
             deliveryNeighborhood,
           },
           userId,
-          status
+          status,
+          userPlan
         );
 
         return reply.status(201).send({
@@ -213,7 +216,7 @@ export async function OrderController(app: FastifyTypeInstance) {
             deliveryNumber,
             deliveryNeighborhood,
           },
-         subdomain
+          subdomain
         );
 
         return reply.status(201).send({

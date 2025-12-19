@@ -2,11 +2,13 @@ import { StoreProductEntity } from "@/entities/store-products";
 import { StoreProductRepository } from "./store-product-repository";
 import { CatalogRepository } from "../catalog/catalog-repository";
 import { StoreRepository } from "../store/store-repository";
-import { da } from "zod/locales";
+import { Plan, canAddProduct, getPlanLimits } from "@/config/plans";
+import { AppError } from "@/lib/AppError";
 
 interface AddCatalogProductDTO {
   catalogId: number;
   userId: string;
+  userPlan?: Plan;
   price: number; // Preço que o usuário quer vender
   quantity: number; // Quantidade que o usuário tem em estoque
   validityDate?: Date; // Data de validade do produto
@@ -25,6 +27,11 @@ export class StoreProductService {
 
     if (!store) {
       throw new Error("Store not found");
+    }
+
+    // Verifica limite de produtos do plano
+    if (data.userPlan) {
+      await this.checkProductLimit(store.id, data.userPlan);
     }
 
     const catalogProduct = await this.catalogRepository.findById(
@@ -185,5 +192,19 @@ export class StoreProductService {
     }
 
     return product;
+  }
+
+  // Verifica se o usuário atingiu o limite de produtos do plano
+  private async checkProductLimit(storeId: string, plan: Plan): Promise<void> {
+    const currentProducts =
+      await this.storeProductRepository.countStoreProducts(storeId);
+
+    if (!canAddProduct(plan, currentProducts)) {
+      const limits = getPlanLimits(plan);
+      throw new AppError(
+        `Você atingiu o limite de ${limits.maxProducts} produtos do plano ${plan}. Faça upgrade para adicionar mais produtos.`,
+        403
+      );
+    }
   }
 }
