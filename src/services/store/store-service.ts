@@ -1,14 +1,14 @@
 import { StoreEntity } from "@/entities/store-entity";
 import { StoreRepository } from "./store-repository";
 import { UserRepository } from "../user/user-repository";
-import { BannerService } from "../banner/banner-service";
-import { th } from "zod/locales";
 
 export class StoreService {
   constructor(
     private storeRepository: StoreRepository,
-    private userRepository: UserRepository
-  ) {}
+    private userRepository: UserRepository,
+  ) {
+    
+  }
 
   async createStore(data: StoreEntity, userId: string): Promise<void> {
     const user = await this.userRepository.findById(userId);
@@ -25,9 +25,9 @@ export class StoreService {
 
     const subdomain = data.name.toLowerCase().replace(/\s+/g, "");
 
-    const bannerId = "2e173f00-7b7d-4082-ba19-22b8be5a9b16";
+    const bannerId = "c9829807-4339-4989-a0ad-50bb20f25489";
 
-    await this.storeRepository.createStore({
+    const newStore = await this.storeRepository.createStore({
       address: data.address,
       name: data.name,
       phone: data.phone,
@@ -62,7 +62,7 @@ export class StoreService {
   ): Promise<{ available: boolean }> {
     const store = await this.storeRepository.findBySubdomain(domain);
 
-    if(store && store.subdomain === domain){
+    if (store && store.subdomain === domain) {
       throw new Error("Domain already in use");
     }
 

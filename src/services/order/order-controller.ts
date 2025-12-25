@@ -4,6 +4,7 @@ import { FastifyTypeInstance } from "@/types/fastify-instance";
 import { OrderPrismaRepository } from "./order-prisma-repository";
 import { StorePrismaRepository } from "../store/store-prisma-repository";
 import { StoreProductPrismaRepository } from "../store-product/store-product-prisma-repository";
+import { StoreProductCustomPrismaRepository } from "../store-product-custom/store-product-custom-prisma-repository";
 import { verifyToken } from "@/middlewares/verify-token";
 import { Plan } from "@/config/plans";
 
@@ -11,10 +12,12 @@ export async function OrderController(app: FastifyTypeInstance) {
   const orderRepository = new OrderPrismaRepository();
   const storeRepository = new StorePrismaRepository();
   const storeProductRepository = new StoreProductPrismaRepository();
+  const storeProductCustomRepository = new StoreProductCustomPrismaRepository();
   const orderService = new OrderService(
     orderRepository,
     storeRepository,
-    storeProductRepository
+    storeProductRepository,
+    storeProductCustomRepository
   );
 
   app.post(

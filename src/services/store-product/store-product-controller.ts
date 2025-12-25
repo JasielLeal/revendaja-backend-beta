@@ -1,4 +1,3 @@
-import { FastifyInstance } from "fastify";
 import { StoreProductPrismaRepository } from "./store-product-prisma-repository";
 import { StoreProductService } from "./store-product-service";
 import { CatalogPrismaRepository } from "../catalog/catalog-prisma-repository";
@@ -7,15 +6,18 @@ import { FastifyTypeInstance } from "@/types/fastify-instance";
 import { verifyToken } from "@/middlewares/verify-token";
 import { StorePrismaRepository } from "../store/store-prisma-repository";
 import { Plan } from "@/config/plans";
+import { StoreProductCustomPrismaRepository } from "../store-product-custom/store-product-custom-prisma-repository";
 
 export async function StoreProductController(app: FastifyTypeInstance) {
   const storeProductRepository = new StoreProductPrismaRepository();
   const catalogRepository = new CatalogPrismaRepository();
   const storeRepository = new StorePrismaRepository();
+  const storeProductCustomRepository = new StoreProductCustomPrismaRepository();
   const storeProductService = new StoreProductService(
     storeProductRepository,
     catalogRepository,
-    storeRepository
+    storeRepository,
+    storeProductCustomRepository
   );
 
   // Adicionar produto do catálogo ao estoque da loja
@@ -298,22 +300,50 @@ export async function StoreProductController(app: FastifyTypeInstance) {
     {
       schema: {
         tags: ["Store-Products"],
-        description: "Get store product by barcode",
+        description:
+          "Get store product by barcode or list all custom products if barcode matches subdomain",
         params: z.object({
           barcode: z.string(),
         }),
+        querystring: z.object({
+          page: z
+            .string()
+            .default("1")
+            .transform((val) => parseInt(val, 10)),
+          pageSize: z
+            .string()
+            .default("10")
+            .transform((val) => parseInt(val, 10)),
+        }),
         response: {
-          200: z.object({
-            id: z.string(),
-            name: z.string(),
-            price: z.number(),
-            quantity: z.number(),
-            brand: z.string(),
-            imgUrl: z.string(),
-            company: z.string(),
-            category: z.string(),
-            status: z.enum(["active", "inactive"]),
-          }),
+          200: z.union([
+            // Resposta para um único produto
+            z.object({
+              id: z.string(),
+              name: z.string(),
+              price: z.number(),
+              quantity: z.number(),
+              brand: z.string(),
+              imgUrl: z.string(),
+              company: z.string(),
+              category: z.string(),
+              status: z.enum(["active", "inactive"]),
+            }),
+            // Resposta para lista de produtos (quando barcode = subdomain)
+            z.array(
+              z.object({
+                id: z.string(),
+                name: z.string(),
+                price: z.number(),
+                quantity: z.number(),
+                brand: z.string(),
+                imgUrl: z.string(),
+                company: z.string(),
+                category: z.string(),
+                status: z.enum(["active", "inactive"]),
+              })
+            ),
+          ]),
           404: z.object({
             error: z.string(),
           }),
@@ -327,9 +357,15 @@ export async function StoreProductController(app: FastifyTypeInstance) {
     async (req, reply) => {
       try {
         const { barcode } = req.params;
+        const { page, pageSize } = req.query;
         const { id } = req.user;
 
-        const product = await storeProductService.findByBarcode(barcode, id);
+        const product = await storeProductService.findByBarcode(
+          barcode,
+          id,
+          page,
+          pageSize
+        );
 
         console.log("✅ Produto encontrado:", product);
 
@@ -339,7 +375,12 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           });
         }
 
-        // converter Date -> string ISO
+        // Se for um array (lista de produtos customizados), retorna direto
+        if (Array.isArray(product)) {
+          return reply.status(200).send(product);
+        }
+
+        // Se for um único produto, serializa
         const serializedProduct = {
           id: product.id!,
           name: product.name,

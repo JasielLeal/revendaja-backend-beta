@@ -3,6 +3,7 @@ import { OrderRepository } from "./order-repository";
 import { StoreRepository } from "../store/store-repository";
 import { generateOrderNumber } from "@/lib/utils";
 import { StoreProductRepository } from "../store-product/store-product-repository";
+import { StoreProductCustomRepository } from "../store-product-custom/store-product-custom-repository";
 import {
   emitOrderCreated,
   emitLowStock,
@@ -19,7 +20,7 @@ export interface CreateOrderDTO {
   customerPhone?: string;
   createdAt?: string;
   items: Array<{
-    storeProductId: string; // ← Mudei de 'id' para 'storeProductId'
+    storeProductId: string; // ID do produto (pode ser catalog ou custom)
     quantity: number;
   }>;
   total?: number; // Pode ser opcional se você calcular
@@ -33,7 +34,8 @@ export class OrderService {
   constructor(
     private orderRepository: OrderRepository,
     private storeRepository: StoreRepository,
-    private storeProductRepository: StoreProductRepository
+    private storeProductRepository: StoreProductRepository,
+    private storeProductCustomRepository: StoreProductCustomRepository
   ) {}
 
   async createOrder(
@@ -82,21 +84,27 @@ export class OrderService {
 
     // 4. Atualiza o estoque de cada produto
     for (const item of preparedItems) {
-      const product = await this.storeProductRepository.findById(
-        item.storeProductId
-      );
+      const isCustom = item.productType === "custom";
+      const productId = isCustom
+        ? item.storeProductCustomId
+        : item.storeProductId;
+
+      if (!productId) continue;
+
+      const repository = isCustom
+        ? this.storeProductCustomRepository
+        : this.storeProductRepository;
+
+      const product = await repository.findById(productId);
       if (!product) continue;
 
       const newQuantity = product.quantity - item.quantity;
-      await this.storeProductRepository.updatedStock(
-        item.storeProductId,
-        newQuantity
-      );
+      await repository.updatedStock(productId, newQuantity);
 
       // Emitir evento de estoque baixo se necessário
       if (newQuantity <= 5) {
         emitLowStock(store.id, {
-          productId: item.storeProductId,
+          productId: productId,
           productName: product.name,
           currentStock: newQuantity,
         });
@@ -135,13 +143,20 @@ export class OrderService {
     let total = 0;
 
     for (const item of items) {
-      // Busca o produto para obter preço e nome
-      const product = await this.storeProductRepository.findById(
-        item.storeProductId
-      );
+      const productId = item.storeProductId;
+
+      // Tenta buscar primeiro no catálogo
+      let product = await this.storeProductRepository.findById(productId);
+      let isCustom = false;
+
+      // Se não encontrou no catálogo, busca nos produtos customizados
+      if (!product) {
+        product = await this.storeProductCustomRepository.findById(productId);
+        isCustom = true;
+      }
 
       if (!product) {
-        throw new Error(`Product not found: ${item.storeProductId}`);
+        throw new Error(`Product not found: ${productId}`);
       }
 
       // Valida estoque
@@ -156,7 +171,9 @@ export class OrderService {
 
       preparedItems.push({
         imgUrl: product.imgUrl,
-        storeProductId: item.storeProductId,
+        storeProductId: isCustom ? undefined : item.storeProductId,
+        storeProductCustomId: isCustom ? item.storeProductId : undefined,
+        productType: isCustom ? "custom" : "catalog",
         quantity: item.quantity,
         price: product.price,
         name: product.name,
@@ -199,16 +216,22 @@ export class OrderService {
 
     // Atualiza estoque e emite eventos
     for (const item of preparedItems) {
-      const product = await this.storeProductRepository.findById(
-        item.storeProductId
-      );
+      const isCustom = item.productType === "custom";
+      const productId = isCustom
+        ? item.storeProductCustomId
+        : item.storeProductId;
+
+      if (!productId) continue;
+
+      const repository = isCustom
+        ? this.storeProductCustomRepository
+        : this.storeProductRepository;
+
+      const product = await repository.findById(productId);
       if (!product) continue;
 
       const newQuantity = product.quantity - item.quantity;
-      await this.storeProductRepository.updatedStock(
-        item.storeProductId,
-        newQuantity
-      );
+      await repository.updatedStock(productId, newQuantity);
     }
 
     // Enviar notificações push apenas para o dono da loja

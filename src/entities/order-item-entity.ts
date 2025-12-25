@@ -7,8 +7,10 @@ export class OrderItemEntity {
   price: number;
   name: string;
   imgUrl: string;
-  storeProductId: string;
+  productType: "catalog" | "custom"; // Tipo de produto
+  storeProductId?: string; // Para produtos do catálogo
   storeProduct?: StoreProductEntity;
+  storeProductCustomId?: string; // Para produtos customizados
   orderId: string;
   order?: OrderEntity;
   createdAt: Date;
@@ -18,5 +20,6 @@ export class OrderItemEntity {
     Object.assign(this, partial);
     this.createdAt = this.createdAt || new Date();
     this.updatedAt = this.updatedAt || new Date();
+    this.productType = this.productType || "catalog";
   }
 }

@@ -4,6 +4,7 @@ import { CatalogRepository } from "../catalog/catalog-repository";
 import { StoreRepository } from "../store/store-repository";
 import { Plan, canAddProduct, getPlanLimits } from "@/config/plans";
 import { AppError } from "@/lib/AppError";
+import { StoreProductCustomRepository } from "../store-product-custom/store-product-custom-repository";
 
 interface AddCatalogProductDTO {
   catalogId: number;
@@ -15,11 +16,35 @@ interface AddCatalogProductDTO {
   costPrice?: number; // Preço de custo do produto
 }
 
+interface addProductCustomDTO {
+  userId: string;
+  userPlan?: Plan;
+  productData: StoreProduct;
+}
+
+interface StoreProduct {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  catalogPrice: number | null;
+  catalogId: number | null;
+  category: string;
+  imgUrl: string;
+  storeId: string;
+  brand: string;
+  company: string;
+  barcode: string;
+  validityDate: Date;
+  costPrice: number;
+}
+
 export class StoreProductService {
   constructor(
     private storeProductRepository: StoreProductRepository,
     private catalogRepository: CatalogRepository,
-    private storeRepository: StoreRepository
+    private storeRepository: StoreRepository,
+    private storeProductCustomRepository: StoreProductCustomRepository
   ) {}
 
   async addCatalogProduct(data: AddCatalogProductDTO): Promise<void> {
@@ -174,12 +199,26 @@ export class StoreProductService {
 
   async findByBarcode(
     barcode: string,
-    userId: string
+    userId: string,
+    page?: number,
+    pageSize?: number
   ): Promise<StoreProductEntity | null> {
     const store = await this.storeRepository.findyStoreByUserId(userId);
 
     if (!store) {
       throw new Error("Store not found");
+    }
+
+    console.log("Searching for barcode:", barcode, "in store:", store.id);
+
+    if (barcode === store.subdomain) {
+      const products = await this.storeProductCustomRepository.findAllByStoreId(
+        store.id,
+        page,
+        pageSize
+      );
+
+      return products as unknown as StoreProductEntity;
     }
 
     const product = await this.storeProductRepository.findByBarcode(

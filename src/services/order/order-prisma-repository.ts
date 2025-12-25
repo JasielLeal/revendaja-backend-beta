@@ -24,7 +24,9 @@ export class OrderPrismaRepository implements OrderRepository {
             quantity: item.quantity,
             price: item.price,
             name: item.name,
+            productType: item.productType || "catalog",
             storeProductId: item.storeProductId,
+            storeProductCustomId: item.storeProductCustomId,
           })),
         },
         createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
@@ -34,12 +36,13 @@ export class OrderPrismaRepository implements OrderRepository {
         items: {
           include: {
             storeProduct: true,
+            storeProductCustom: true,
           },
         },
       },
     });
 
-    return order;
+    return order as unknown as OrderEntity;
   }
   async getAllOrders(storeId: string, from?: string, to?: string) {
     const where: any = { storeId };

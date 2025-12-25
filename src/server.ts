@@ -23,6 +23,7 @@ import { WhatsappWebhookController } from "./services/whatsapp/whatsapp-webhook-
 import { PushTokenController } from "./services/push-token/push-token-controller";
 import { Server } from "socket.io";
 import { initializeSocket } from "./lib/socket";
+import { StoreProductCustomController } from "./services/store-product-custom/store-product-custom-controller";
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
 
@@ -87,6 +88,7 @@ app.register(StoreWebController, { prefix: "/api/web" });
 app.register(BannerController, { prefix: "/api" });
 app.register(WhatsappWebhookController, { prefix: "/api" });
 app.register(PushTokenController, { prefix: "/api" });
+app.register(StoreProductCustomController, { prefix: "/api" });
 
 app.register(fastifySwaggerUi, {
   routePrefix: "/docs",

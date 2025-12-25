@@ -3,8 +3,8 @@ import { StoreRepository } from "./store-repository";
 import { prisma } from "@/lib/prisma";
 
 export class StorePrismaRepository implements StoreRepository {
-  async createStore(data: StoreEntity): Promise<void> {
-    await prisma.store.create({
+  async createStore(data: StoreEntity): Promise<StoreEntity> {
+    const store = await prisma.store.create({
       data: {
         address: data.address,
         name: data.name,
@@ -15,6 +15,8 @@ export class StorePrismaRepository implements StoreRepository {
         subdomain: data.subdomain,
       },
     });
+
+    return store
   }
 
   async findByName(name: string): Promise<StoreEntity | null> {
