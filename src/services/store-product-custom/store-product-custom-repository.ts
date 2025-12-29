@@ -6,7 +6,11 @@ export interface StoreProductCustomRepository {
   findAllByStoreId(
     storeId: string,
     page?: number,
-    pageSize?: number
-  ): Promise<StoreProductEntity[]>;
+    pageSize?: number,
+    query?: string
+  ): Promise<{
+    products: StoreProductEntity[];
+    pagination: { page: number; pageSize: number; total: number };
+  }>;
   create(data: StoreProductEntity): Promise<StoreProductEntity>;
 }

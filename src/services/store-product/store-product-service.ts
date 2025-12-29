@@ -115,6 +115,16 @@ export class StoreProductService {
       throw new Error("Store not found");
     }
 
+    // Produtos customizados
+    const customProducts =
+      await this.storeProductCustomRepository.findAllByStoreId(
+        store.id,
+        page,
+        pageSize,
+        query
+      );
+
+    // Produtos padrão
     const products = await this.storeProductRepository.findAllStoreProducts(
       page,
       pageSize,
@@ -123,7 +133,25 @@ export class StoreProductService {
       category
     );
 
-    return products;
+    // Combinar arrays
+    const allProductsData = [
+      ...(products.data || []), // pega apenas o array de dados
+      ...customProducts.products, // produtos customizados
+    ];
+
+    const analisedProducts = {
+      data: allProductsData,
+      pagination: {
+        ...products.pagination,
+        total: (products.pagination?.total || 0) + customProducts.pagination.total,
+        totalPages: Math.ceil(
+          ((products.pagination?.total || 0) + customProducts.pagination.total) /
+            (pageSize || 10)
+        ),
+      },
+    }
+
+    return analisedProducts
   }
 
   async updateProduct(
@@ -208,17 +236,35 @@ export class StoreProductService {
     if (!store) {
       throw new Error("Store not found");
     }
+    const normalizedBarcode = barcode.toLowerCase();
 
-    console.log("Searching for barcode:", barcode, "in store:", store.id);
-
-    if (barcode === store.subdomain) {
+    if (normalizedBarcode === store.subdomain) {
       const products = await this.storeProductCustomRepository.findAllByStoreId(
         store.id,
         page,
         pageSize
       );
 
-      return products as unknown as StoreProductEntity;
+
+      // Retorna apenas os campos específicos com paginação
+      const formattedProducts = products.products.map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: product.quantity,
+        brand: product.brand,
+        imgUrl: product.imgUrl,
+        company: product.company,
+        category: product.category,
+        status: product.status,
+      }));
+
+      return {
+        products: formattedProducts,
+        total: products.pagination.total,
+        page: products.pagination.page,
+        pageSize: products.pagination.pageSize,
+      } as unknown as StoreProductEntity;
     }
 
     const product = await this.storeProductRepository.findByBarcode(

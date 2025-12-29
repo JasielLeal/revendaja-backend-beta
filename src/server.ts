@@ -24,9 +24,10 @@ import { PushTokenController } from "./services/push-token/push-token-controller
 import { Server } from "socket.io";
 import { initializeSocket } from "./lib/socket";
 import { StoreProductCustomController } from "./services/store-product-custom/store-product-custom-controller";
+import multipart from "@fastify/multipart";
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
-
+app.register(multipart);
 // IMPORTANTE: Registrar o content parser ANTES de tudo
 // Capture raw request body for routes that need it (Stripe webhooks).
 // We parse JSON as buffer, attach it to request.rawBody, and still return the parsed object

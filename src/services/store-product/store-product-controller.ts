@@ -137,10 +137,10 @@ export async function StoreProductController(app: FastifyTypeInstance) {
                 brand: z.string(),
                 barcode: z.string(),
                 company: z.string(),
-                catalogPrice: z.number(),
-                catalogId: z.number(),
+                catalogPrice: z.number().nullable().optional(),
+                catalogId: z.number().nullable().optional(),
                 category: z.string(),
-                imgUrl: z.string(),
+                imgUrl: z.string().nullable(),
                 status: z.string(),
                 storeId: z.string(),
                 type: z.string(),
@@ -169,8 +169,6 @@ export async function StoreProductController(app: FastifyTypeInstance) {
         const { page, pageSize, query, category } = req.query;
         const { id } = req.user;
 
-        console.log(query);
-
         const result = await storeProductService.findAllStoreProducts(
           page,
           pageSize,
@@ -178,6 +176,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           query,
           category
         );
+
+        console.log("✅ Produtos retornados:", result);
 
         // converter Date -> string ISO
         const serializedResult = {
@@ -189,7 +189,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           })),
         };
 
-        console.log("✅ Result");
+        console.log("✅ Resultado serializado:", serializedResult);
 
         return reply.status(200).send(serializedResult);
       } catch (error: any) {
@@ -330,19 +330,26 @@ export async function StoreProductController(app: FastifyTypeInstance) {
               status: z.enum(["active", "inactive"]),
             }),
             // Resposta para lista de produtos (quando barcode = subdomain)
-            z.array(
-              z.object({
-                id: z.string(),
-                name: z.string(),
-                price: z.number(),
-                quantity: z.number(),
-                brand: z.string(),
-                imgUrl: z.string(),
-                company: z.string(),
-                category: z.string(),
-                status: z.enum(["active", "inactive"]),
-              })
-            ),
+            z.object({
+              products: z.array(
+                z.object({
+                  id: z.string(),
+                  name: z.string(),
+                  price: z.number(),
+                  quantity: z.number(),
+                  brand: z.string(),
+                  imgUrl: z.string().nullable(),
+                  company: z.string(),
+                  category: z.string(),
+                  status: z.enum(["active", "inactive"]),
+                })
+              ),
+              pagination: z.object({
+                page: z.number(),
+                pageSize: z.number(),
+                total: z.number(),
+              }),
+            }),
           ]),
           404: z.object({
             error: z.string(),
@@ -365,9 +372,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           id,
           page,
           pageSize
-        );
-
-        console.log("✅ Produto encontrado:", product);
+        )
 
         if (!product) {
           return reply.status(404).send({
@@ -376,27 +381,70 @@ export async function StoreProductController(app: FastifyTypeInstance) {
         }
 
         // Se for um array (lista de produtos customizados), retorna direto
-        if (Array.isArray(product)) {
-          return reply.status(200).send(product);
+        if (
+          product &&
+          typeof product === "object" &&
+          (product as any).products &&
+          Array.isArray((product as any).products)
+        ) {
+          const customList = product as any;
+          console.log(
+            "✅ Lista de produtos customizados retornada:",
+            customList
+          );
+
+        
+
+
+          return reply.status(200).send({
+            products: customList.products.map((p: any) => ({
+              id: p.id ?? "",
+              name: p.name ?? "",
+              price: p.price ?? 0,
+              quantity: p.quantity ?? 0,
+              brand: p.brand ?? "",
+              imgUrl: p.imgUrl ?? null,
+              company: p.company ?? "",
+              category: p.category ?? "",
+              status: (p.status ?? "active") as "active" | "inactive",
+            })),
+            pagination: {
+              page: customList.page,
+              pageSize: customList.pageSize,
+              total: customList.total,
+            },
+          });
         }
 
-        // Se for um único produto, serializa
-        const serializedProduct = {
-          id: product.id!,
-          name: product.name,
-          price: product.price,
-          quantity: product.quantity,
-          brand: product.brand,
-          company: product.company,
-          imgUrl: product.imgUrl || "",
-          category: product.category || "",
-          status: (product.status || "active") as "active" | "inactive",
-        };
+        console.log("✅ Produto retornado por código de barras:", product);
 
-        return reply.status(200).send(serializedProduct);
+        // Se for um único produto, serializa
+        if (product && typeof product === "object") {
+          const serializedProduct = {
+            id: product.id ?? "",
+            name: product.name ?? "",
+            price: product.price ?? 0,
+            quantity: product.quantity ?? 0,
+            brand: product.brand ?? "",
+            company: product.company ?? "",
+            imgUrl: product.imgUrl || "",
+            category: product.category || "",
+            status: (product.status || "active") as "active" | "inactive",
+          };
+          return reply.status(200).send(serializedProduct);
+        }
+
+        // Caso o retorno seja inesperado
+        console.error(
+          "[ERRO] Formato inesperado retornado por findByBarcode:",
+          product
+        );
+        return reply.status(500).send({
+          error:
+            "Formato inesperado retornado por findByBarcode. Consulte os logs para detalhes.",
+        });
       } catch (error: any) {
         console.log("❌ ERRO ao buscar produto por código de barras:", error);
-
         return reply.status(500).send({
           error: "Erro interno: " + error.message,
         });

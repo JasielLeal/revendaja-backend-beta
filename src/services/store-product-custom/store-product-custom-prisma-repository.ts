@@ -39,15 +39,45 @@ export class StoreProductCustomPrismaRepository
   async findAllByStoreId(
     storeId: string,
     page?: number,
-    pageSize?: number
-  ): Promise<StoreProductEntity[]> {
+    pageSize?: number,
+    query?: string
+  ): Promise<{
+    products: StoreProductEntity[];
+    pagination: { page: number; pageSize: number; total: number };
+  }> {
+    page = page || 1;
+    pageSize = pageSize || 20;
+
+    const where: any = {
+      storeId,
+      // ✅ Removido filtro de status - agora lista TODOS os produtos (ativos e inativos)
+    };
+
+    if (query) {
+      where.OR = [
+        { name: { contains: query, mode: "insensitive" } },
+      ];
+    }
+
     const products = await prisma.storeProductCustom.findMany({
-      where: { storeId },
+      where,
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
 
-    return products;
+    const total = await prisma.storeProductCustom.count({
+      where,
+    });
+
+    return {
+      products,
+      pagination:{
+        page: page,
+        pageSize: pageSize,
+        total,
+      }
+
+    };
   }
 
   async updatedStock(productId: string, newQuantity: number): Promise<void> {
