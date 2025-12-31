@@ -7,6 +7,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "@/lib/s3";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
+import { CheckPlanLimits } from "@/middlewares/check-plan-limits";
 
 export async function StoreProductCustomController(app: FastifyTypeInstance) {
   const storeRepository = new StorePrismaRepository();
@@ -20,7 +21,7 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
   app.post(
     "/store-products-custom",
     {
-      preHandler: [verifyToken],
+      preHandler: [verifyToken, CheckPlanLimits],
       schema: {
         tags: ["Store-Products-Custom"],
         description: "Create a custom product for the store",
@@ -90,9 +91,10 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
           price: z.number().min(0.01),
           quantity: z.number().min(0),
           costPrice: z.number().optional(),
+          category: z.string().optional(),
         });
 
-        const { name, price, quantity, costPrice } = bodySchema.parse(bodyRaw);
+        const { name, price, quantity, costPrice, category } = bodySchema.parse(bodyRaw);
 
         let imgUrl: string | undefined;
 
@@ -125,6 +127,7 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
             quantity,
             costPrice,
             imgUrl,
+            category
           },
           userId,
           userPlan

@@ -8,16 +8,19 @@ import { Plan } from "@/config/plans";
 import { OrderPrismaRepository } from "../order/order-prisma-repository";
 import { StoreProductPrismaRepository } from "../store-product/store-product-prisma-repository";
 import { PlanLimitsService } from "@/lib/plan-limits";
+import { StoreProductCustomPrismaRepository } from "../store-product-custom/store-product-custom-prisma-repository";
 
 export async function StoreController(app: FastifyTypeInstance) {
   const storeRepository = new StorePrismaRepository();
   const userRepository = new UserPrismaRepository();
   const orderRepository = new OrderPrismaRepository();
+  const storeProductCustomRepository = new StoreProductCustomPrismaRepository();
   const storeProductRepository = new StoreProductPrismaRepository();
   const storeService = new StoreService(storeRepository, userRepository);
   const planLimitsService = new PlanLimitsService(
     orderRepository,
-    storeProductRepository
+    storeProductRepository,
+    storeProductCustomRepository
   );
 
   app.post(
@@ -233,6 +236,8 @@ export async function StoreController(app: FastifyTypeInstance) {
           store.id,
           userPlan
         );
+
+        console.log("Usage Info:", usageInfo);
 
         return reply.status(200).send(usageInfo);
       } catch (err: any) {

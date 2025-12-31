@@ -1,3 +1,4 @@
+import { StoreProductCustomRepository } from "@/services/store-product-custom/store-product-custom-repository";
 import {
   Plan,
   canCreateOrder,
@@ -37,7 +38,8 @@ export interface UsageInfo {
 export class PlanLimitsService {
   constructor(
     private orderRepository: OrderRepository,
-    private storeProductRepository: StoreProductRepository
+    private storeProductRepository: StoreProductRepository,
+    private storeProductCustomRepository?: StoreProductCustomRepository
   ) {}
 
   // Verifica se pode criar uma nova venda
@@ -78,10 +80,13 @@ export class PlanLimitsService {
   async getUsageInfo(storeId: string, plan: Plan): Promise<UsageInfo> {
     const { from, to } = getMonthRange();
 
-    const [monthlyOrders, totalProducts] = await Promise.all([
+    const [monthlyOrders, storeProducts, customProducts] = await Promise.all([
       this.orderRepository.countOrdersInRange(storeId, from, to),
       this.storeProductRepository.countStoreProducts(storeId),
+      this.storeProductCustomRepository.countActiveProducts(storeId),
     ]);
+
+    const totalProducts = storeProducts + customProducts;
 
     const limits = getPlanLimits(plan);
 

@@ -28,7 +28,7 @@ export interface PlanLimits {
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   Free: {
     monthlyOrders: 10,
-    maxProducts: 30,
+    maxProducts: 15,
     canUseOnlineStore: true,
     canUseWhatsappIntegration: false,
     canExportReports: false,

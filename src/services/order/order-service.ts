@@ -331,6 +331,8 @@ export class OrderService {
         status
       );
 
+    const allItems = orders.flatMap((order) => order.items);
+
     // Calcula métricas com base nos pedidos da página
     const totalOrders = orders.length;
     const approvedOrders = orders.filter((o) => o.status === "approved");

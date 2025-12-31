@@ -143,87 +143,89 @@ export class StoreProductService {
       data: allProductsData,
       pagination: {
         ...products.pagination,
-        total: (products.pagination?.total || 0) + customProducts.pagination.total,
+        total:
+          (products.pagination?.total || 0) + customProducts.pagination.total,
         totalPages: Math.ceil(
-          ((products.pagination?.total || 0) + customProducts.pagination.total) /
+          ((products.pagination?.total || 0) +
+            customProducts.pagination.total) /
             (pageSize || 10)
         ),
       },
-    }
+    };
 
-    return analisedProducts
+    return analisedProducts;
   }
 
   async updateProduct(
-    productId: string,
-    userId: string,
-    updates: {
-      price?: number;
-      quantity?: number;
-      status?: string;
-      validity_date?: Date;
-      cost_price?: number;
-    }
-  ): Promise<string[]> {
-    // Verificar se a loja pertence ao usuário
-    const store = await this.storeRepository.findyStoreByUserId(userId);
+  productId: string,
+  userId: string,
+  updates: {
+    price?: number;
+    quantity?: number;
+    status?: string;
+    validity_date?: Date;
+    cost_price?: number;
+  }
+): Promise<string[]> {
+  const store = await this.storeRepository.findyStoreByUserId(userId);
 
-    if (!store) {
-      throw new Error("Store not found");
-    }
+  if (!store) {
+    throw new Error("Store not found");
+  }
 
-    // Verificar se o produto existe e pertence à loja do usuário
-    const product = await this.storeProductRepository.findById(productId);
+  let product;
+  let repository;
 
-    if (!product) {
+  const catalogProduct = await this.storeProductRepository.findById(productId);
+
+  if (catalogProduct) {
+    product = catalogProduct;
+    repository = this.storeProductRepository;
+  } else {
+    const customProduct =
+      await this.storeProductCustomRepository.findById(productId);
+
+    if (!customProduct) {
       throw new Error("Product not found");
     }
 
-    if (product.storeId !== store.id) {
-      throw new Error("Product does not belong to your store");
-    }
-
-    // Aplicar atualizações parciais
-    const updatedFields: string[] = [];
-
-    if (updates.price !== undefined) {
-      await this.storeProductRepository.updatePrice(productId, updates.price);
-      updatedFields.push("price");
-    }
-
-    if (updates.quantity !== undefined) {
-      await this.storeProductRepository.updatedStock(
-        productId,
-        updates.quantity
-      );
-      updatedFields.push("quantity");
-    }
-
-    if (updates.status !== undefined) {
-      await this.storeProductRepository.updateStatus(productId, updates.status);
-      updatedFields.push("status");
-    }
-
-    console.log(updates.validity_date);
-
-    if (updates.validity_date !== undefined) {
-      await this.storeProductRepository.updateValidityDate(
-        productId,
-        new Date(updates.validity_date)
-      );
-      updatedFields.push("validity_date");
-    }
-
-    if (updates.cost_price !== undefined) {
-      await this.storeProductRepository.updateCostPrice(
-        productId,
-        updates.cost_price
-      );
-      updatedFields.push("cost_price");
-    }
-
-    return updatedFields;
+    product = customProduct;
+    repository = this.storeProductCustomRepository;
   }
+
+  if (product.storeId !== store.id) {
+    throw new Error("Product does not belong to your store");
+  }
+
+  const updatedFields: string[] = [];
+
+  if (updates.price !== undefined) {
+    await repository.updatePrice(productId, updates.price);
+    updatedFields.push("price");
+  }
+
+  if (updates.quantity !== undefined) {
+    await repository.updatedStock(productId, updates.quantity);
+    updatedFields.push("quantity");
+  }
+
+  if (updates.status !== undefined) {
+    await repository.updateStatus(productId, updates.status);
+    updatedFields.push("status");
+  }
+
+  if (updates.validity_date !== undefined) {
+    await repository.updateValidityDate(productId, updates.validity_date);
+    updatedFields.push("validity_date");
+  }
+
+  if (updates.cost_price !== undefined) {
+    await repository.updateCostPrice(productId, updates.cost_price);
+    updatedFields.push("cost_price");
+  }
+
+  return updatedFields;
+}
 
   async findByBarcode(
     barcode: string,
@@ -244,7 +246,6 @@ export class StoreProductService {
         page,
         pageSize
       );
-
 
       // Retorna apenas os campos específicos com paginação
       const formattedProducts = products.products.map((product: any) => ({

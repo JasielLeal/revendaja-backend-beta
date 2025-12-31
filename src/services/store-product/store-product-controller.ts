@@ -7,6 +7,7 @@ import { verifyToken } from "@/middlewares/verify-token";
 import { StorePrismaRepository } from "../store/store-prisma-repository";
 import { Plan } from "@/config/plans";
 import { StoreProductCustomPrismaRepository } from "../store-product-custom/store-product-custom-prisma-repository";
+import { CheckPlanLimits } from "@/middlewares/check-plan-limits";
 
 export async function StoreProductController(app: FastifyTypeInstance) {
   const storeProductRepository = new StoreProductPrismaRepository();
@@ -49,7 +50,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           }),
         },
       },
-      preHandler: [verifyToken],
+      preHandler: [verifyToken, CheckPlanLimits],
     },
 
     async (req, reply) => {
@@ -415,8 +416,6 @@ export async function StoreProductController(app: FastifyTypeInstance) {
             },
           });
         }
-
-        console.log("✅ Produto retornado por código de barras:", product);
 
         // Se for um único produto, serializa
         if (product && typeof product === "object") {

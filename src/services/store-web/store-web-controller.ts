@@ -5,15 +5,18 @@ import { StorePrismaRepository } from "../store/store-prisma-repository";
 import { StoreProductPrismaRepository } from "../store-product/store-product-prisma-repository";
 import { StoreWebService } from "./store-web-service";
 import { BannerPrismaRepository } from "../banner/banner-prisma-repository";
+import { StoreProductCustomPrismaRepository } from "../store-product-custom/store-product-custom-prisma-repository";
 
 export async function StoreWebController(app: FastifyTypeInstance) {
   const storeRepository = new StorePrismaRepository();
   const storeProductRepository = new StoreProductPrismaRepository();
   const bannerRepository = new BannerPrismaRepository();
+  const storeProductCustomRepository = new StoreProductCustomPrismaRepository();
   const storeWebService = new StoreWebService(
     storeRepository,
     storeProductRepository,
-    bannerRepository
+    bannerRepository,
+    storeProductCustomRepository
   );
 
   // Obter informações da loja pelo subdomínio
@@ -61,8 +64,6 @@ export async function StoreWebController(app: FastifyTypeInstance) {
 
         const storeData = await storeWebService.getStoreInfo(subdomain);
 
-        console.log(storeData);
-
         return reply.status(200).send({
           id: storeData.id,
           name: storeData.name,
@@ -72,8 +73,8 @@ export async function StoreWebController(app: FastifyTypeInstance) {
           primaryColor: storeData.primaryColor,
           bannerUrl: storeData.bannerUrl,
           createdAt: storeData.createdAt.toISOString(),
-          categories: storeData.categories,
-          totalProducts: storeData.totalProducts,
+          categories: storeData.combinedCategories,
+          totalProducts: storeData.totalProductsCount,
           productsByCategory: storeData.productsByCategory,
         });
       } catch (error: any) {
@@ -242,9 +243,9 @@ export async function StoreWebController(app: FastifyTypeInstance) {
                 brand: z.string(),
                 company: z.string(),
                 catalogPrice: z.number().optional(),
-                catalogId: z.number().optional(),
+                catalogId: z.number().optional().nullable(),
                 category: z.string().optional(),
-                imgUrl: z.string().optional(),
+                imgUrl: z.string().optional().nullable(),
                 status: z.string(),
                 type: z.string(),
                 createdAt: z.string(),
@@ -280,6 +281,8 @@ export async function StoreWebController(app: FastifyTypeInstance) {
           category,
           status
         );
+
+        console.log(result)
 
         // Serializar datas
         const serializedResult = {

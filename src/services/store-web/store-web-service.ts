@@ -1,6 +1,7 @@
 import { StoreRepository } from "../store/store-repository";
 import { StoreProductRepository } from "../store-product/store-product-repository";
 import { BannerRepository } from "../banner/banner-repository";
+import { StoreProductCustomPrismaRepository } from "../store-product-custom/store-product-custom-prisma-repository";
 
 interface ProductFilters {
   category?: string;
@@ -15,7 +16,8 @@ export class StoreWebService {
   constructor(
     private storeRepository: StoreRepository,
     private storeProductRepository: StoreProductRepository,
-    private bannerRepository: BannerRepository
+    private bannerRepository: BannerRepository,
+    private storeProductCustomRepository: StoreProductCustomPrismaRepository
   ) {}
 
   async getStoreInfo(subdomain: string) {
@@ -26,15 +28,28 @@ export class StoreWebService {
       throw new Error("Store not found");
     }
 
+    const categoryCustom = await this.storeProductCustomRepository.getUniqueCategories(
+      store.id
+    );
+
     // Busca categorias dos produtos ativos
     const categories = await this.storeProductRepository.getUniqueCategories(
       store.id
     );
 
-    // Conta total de produtos
+    const combinedCategories = Array.from(new Set([...categoryCustom, ...categories]));
+
+    // Conta total de produtos do catalogo
     const totalProducts = await this.storeProductRepository.countActiveProducts(
       store.id
     );
+
+    // Conta total de produtos customizados
+    const totalCustomProducts = await this.storeProductCustomRepository.countActiveProducts(
+      store.id
+    );
+
+    const totalProductsCount = totalProducts + totalCustomProducts;
 
     // Conta produtos por categoria
     const productsByCategory =
@@ -54,8 +69,8 @@ export class StoreWebService {
         desktop: banner?.desktopUrl || null,
       },
       createdAt: store.createdAt,
-      categories,
-      totalProducts,
+      combinedCategories,
+      totalProductsCount,
       productsByCategory: {
         Masculino: productsByCategory.Masculino || 0,
         Feminino: productsByCategory.Feminino || 0,
@@ -105,19 +120,33 @@ export class StoreWebService {
       throw new Error("Store not found");
     }
 
-    // Usa o método existente do repositório com adaptação
-    const result = await this.storeProductRepository.findAllStoreProducts(
-      page,
-      pageSize,
-      store.id,
-      search || "",
-      category
-    );
+    const customResult =
+      await this.storeProductCustomRepository.findAllByStoreId(
+        store.id,
+        page,
+        pageSize,
+        search,
+        category,
+        status
+      );
 
-    console.log(result)
+    // Usa o método existente do repositório com adaptação
+    const catalogResult =
+      await this.storeProductRepository.findAllStoreProducts(
+        page,
+        pageSize,
+        store.id,
+        search || "",
+        category
+      );
+
+    let data = [
+      ...(customResult.products ?? []),
+      ...(catalogResult.data ?? []),
+    ];
 
     // Filtrar por categoria e status se necessário
-    let filteredData = result.data;
+    let filteredData = data;
 
     if (status) {
       filteredData = filteredData.filter(
@@ -125,12 +154,9 @@ export class StoreWebService {
       );
     }
 
-    const total = await this.storeProductRepository.countStoreProducts(
-      store.id,
-      search || ""
-    );
-
-    const totalPages = Math.ceil(total / pageSize);
+    const total =
+      (customResult.pagination?.total ?? 0) +
+      (catalogResult.pagination?.total ?? 0);
 
     return {
       data: filteredData,
@@ -138,7 +164,7 @@ export class StoreWebService {
         page,
         pageSize,
         total: total,
-        totalPages: totalPages,
+        totalPages: Math.ceil(total / pageSize),
       },
     };
   }

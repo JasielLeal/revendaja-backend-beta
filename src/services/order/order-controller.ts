@@ -366,7 +366,7 @@ export async function OrderController(app: FastifyTypeInstance) {
                 paymentMethod: z.string(),
                 customerName: z.string().optional(),
                 customerPhone: z.string().nullable().optional(),
-                storeId: z.string(),
+                storeId: z.string().nullable().optional(),
                 createdAt: z.string(),
                 updatedAt: z.string(),
                 items: z.array(
@@ -376,7 +376,8 @@ export async function OrderController(app: FastifyTypeInstance) {
                     quantity: z.number(),
                     imgUrl: z.string(),
                     price: z.number(),
-                    storeProductId: z.string(),
+                    storeProductId: z.string().nullable().optional(),
+                    storeProductCustomId: z.string().nullable().optional(),
                     createdAt: z.string(),
                     updatedAt: z.string(),
                   })

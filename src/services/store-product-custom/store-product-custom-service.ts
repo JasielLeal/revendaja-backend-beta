@@ -14,6 +14,7 @@ export class StoreProductCustomService {
         price: number;
         quantity: number;
         imgUrl?: string;
+        category?: string;
         costPrice?: number;
     },
     userId: string,
@@ -28,7 +29,7 @@ export class StoreProductCustomService {
     await this.storeProductCustomRepository.create({
       barcode: store.subdomain,
       brand: store.name,
-      category: "Custom",
+      category: data.category || "Kits",
       company: store.name,
       imgUrl: data.imgUrl,
       name: data.name,
