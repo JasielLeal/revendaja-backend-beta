@@ -26,4 +26,5 @@ export interface StoreProductCustomRepository {
 
   getUniqueCategories(storeId: string): Promise<string[]>
   countActiveProducts(storeId: string): Promise<number>
+  countLowStock(storeId: string, limit: number): Promise<number>;
 }

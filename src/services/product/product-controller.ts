@@ -9,7 +9,6 @@ export async function ProductController(app: FastifyTypeInstance) {
   const productRepository = new ProductPrismaRepository();
   const productService = new ProductService(productRepository);
 
-  //get products
   app.post(
     "/products/migrate",
     {
@@ -39,6 +38,47 @@ export async function ProductController(app: FastifyTypeInstance) {
         return reply
           .status(200)
           .send({ message: "Products migrated successfully" });
+      } catch (err: any) {
+        return reply.status(err.statusCode || 500).send({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    "/products/migrate/:storeId",
+    {
+      schema: {
+        tags: ["Products"],
+        description:
+          "Migrate products for a specific store from external source",
+        params: z.object({
+          storeId: z.string().uuid(),
+        }),
+        response: {
+          200: z.object({
+            message: z
+              .string()
+              .default("Products migrated successfully for store"),
+          }),
+          401: z.object({
+            error: z.string().default("Unauthorized"),
+          }),
+          403: z.object({
+            error: z
+              .string()
+              .default("Apenas administradores podem realizar esta ação"),
+          }),
+        },
+      },
+      preHandler: [verifyToken, requireAdmin],
+    },
+    async (req, reply) => {
+      try {
+        const { storeId } = req.params;
+        await productService.migrateProductsForStore(storeId);
+        return reply
+          .status(200)
+          .send({ message: "Products migrated successfully for store" });
       } catch (err: any) {
         return reply.status(err.statusCode || 500).send({ error: err.message });
       }

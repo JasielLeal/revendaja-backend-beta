@@ -9,4 +9,10 @@ export class ProductService {
 
     await this.productRepository.migrateProducts();
   }
+
+  async migrateProductsForStore(storeId: string): Promise<void> {
+
+    console.log(`Starting product migration for store ${storeId}...`);
+    await this.productRepository.migrateProductsForStore(storeId);
+  }
 }

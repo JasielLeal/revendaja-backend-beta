@@ -353,7 +353,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
             }),
           ]),
           404: z.object({
-            error: z.string(),
+            error: z.string("Produto não encontrado"),
           }),
           500: z.object({
             error: z.string(),
@@ -450,4 +450,43 @@ export async function StoreProductController(app: FastifyTypeInstance) {
       }
     }
   );
+
+  app.get(
+    "/store-product/stock/summary",
+    {
+      schema: {
+        tags: ["Store-Products"],
+        description: "Get stock summary for the store",
+        response: {
+          200: z.object({
+            totalProducts: z.number(),
+            lowStockProducts: z.number(),
+          }),
+          404: z.object({
+            error: z.string(),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        const { id } = req.user;
+        const summary = await storeProductService.stockSummary(id);
+
+        console.log("✅ Resumo do estoque obtido:", summary);
+
+        return reply.status(200).send(summary);
+      }
+      catch (error: any) {
+        console.log("❌ ERRO ao obter resumo do estoque:", error);
+        return reply.status(500).send({
+          error: "Erro interno: " + error.message,
+        });
+      }
+    }
+  )
 }

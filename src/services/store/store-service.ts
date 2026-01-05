@@ -5,10 +5,8 @@ import { UserRepository } from "../user/user-repository";
 export class StoreService {
   constructor(
     private storeRepository: StoreRepository,
-    private userRepository: UserRepository,
-  ) {
-    
-  }
+    private userRepository: UserRepository
+  ) {}
 
   async createStore(data: StoreEntity, userId: string): Promise<void> {
     const user = await this.userRepository.findById(userId);
@@ -23,7 +21,34 @@ export class StoreService {
       throw new Error("Store name already in use");
     }
 
+    const checkSubdomain = await this.storeRepository.findBySubdomain(
+      data.name.toLowerCase().replace(/\s+/g, "")
+    );
+
+    if (checkSubdomain) {
+      throw new Error("Subdomain already in use");
+    }
+
     const subdomain = data.name.toLowerCase().replace(/\s+/g, "");
+
+    try {
+      await fetch(
+        `https://api.vercel.com/v10/projects/${process.env.NEXT_PROJECTID}/domains`,
+        {
+          method: "POST", // Método HTTP correto
+          headers: {
+            Authorization: "Bearer " + process.env.NEXT_TOKEN,
+            "Content-Type": "application/json", // Definir o tipo de conteúdo
+          },
+          body: JSON.stringify({
+            // Converter o body para JSON
+            name: `${subdomain}.revendaja.com`,
+          }),
+        }
+      );
+    } catch (error) {
+      throw new Error("Error creating domain on Vercel:" + error);
+    }
 
     const bannerId = "c9829807-4339-4989-a0ad-50bb20f25489";
 

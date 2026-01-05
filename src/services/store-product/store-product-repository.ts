@@ -54,4 +54,5 @@ export interface StoreProductRepository {
     barcode: string,
     storeId: string
   ): Promise<StoreProductEntity | null>;
+  countLowStock(storeId: string, limit: number): Promise<number>;
 }

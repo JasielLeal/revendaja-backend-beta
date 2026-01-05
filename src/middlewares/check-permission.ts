@@ -2,6 +2,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { Permission, hasPermission, Role } from "../config/permissions";
 import { Plan, getPlanLimits } from "../config/plans";
 import { AppError } from "../lib/AppError";
+import { prisma } from "@/lib/prisma";
 
 // Middleware factory para verificar permissão de role
 export function requirePermission(permission: Permission) {
@@ -67,7 +68,12 @@ export async function requireAdmin(req: FastifyRequest, reply: FastifyReply) {
     throw new AppError("Usuário não autenticado", 401);
   }
 
-  if (user.role !== "Admin") {
+  const userRole = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { role: true },
+  })
+
+  if (userRole?.role !== "Admin") {
     throw new AppError("Apenas administradores podem realizar esta ação", 403);
   }
 }

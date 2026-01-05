@@ -74,7 +74,7 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     }
 
     if (category) {
-       where.category = { contains: category, mode: "insensitive" };
+      where.category = { contains: category, mode: "insensitive" };
     }
 
     // Lista de produtos paginados (busca exata/contains)
@@ -371,5 +371,17 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
       },
     });
     return product as StoreProductEntity | null;
+  }
+
+  async countLowStock(storeId: string, limit: number): Promise<number> {
+    const count = await prisma.storeProduct.count({
+      where: {
+        storeId,
+        quantity: {
+          lte: limit,
+        },
+      },
+    });
+    return count;
   }
 }

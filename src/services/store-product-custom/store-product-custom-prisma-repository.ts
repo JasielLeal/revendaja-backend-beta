@@ -226,4 +226,16 @@ export class StoreProductCustomPrismaRepository
       },
     });
   }
+
+  async countLowStock(storeId: string, limit: number): Promise<number> {
+    const count = await prisma.storeProductCustom.count({
+      where: {
+        storeId,
+        quantity: {
+          lte: limit,
+        },
+      },
+    });
+    return count; 
+  }
 }

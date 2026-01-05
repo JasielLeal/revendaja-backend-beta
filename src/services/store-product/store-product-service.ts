@@ -157,75 +157,78 @@ export class StoreProductService {
   }
 
   async updateProduct(
-  productId: string,
-  userId: string,
-  updates: {
-    price?: number;
-    quantity?: number;
-    status?: string;
-    validity_date?: Date;
-    cost_price?: number;
-  }
-): Promise<string[]> {
-  const store = await this.storeRepository.findyStoreByUserId(userId);
+    productId: string,
+    userId: string,
+    updates: {
+      price?: number;
+      quantity?: number;
+      status?: string;
+      validity_date?: Date;
+      cost_price?: number;
+    }
+  ): Promise<string[]> {
+    const store = await this.storeRepository.findyStoreByUserId(userId);
 
-  if (!store) {
-    throw new Error("Store not found");
-  }
-
-  let product;
-  let repository;
-
-  const catalogProduct = await this.storeProductRepository.findById(productId);
-
-  if (catalogProduct) {
-    product = catalogProduct;
-    repository = this.storeProductRepository;
-  } else {
-    const customProduct =
-      await this.storeProductCustomRepository.findById(productId);
-
-    if (!customProduct) {
-      throw new Error("Product not found");
+    if (!store) {
+      throw new Error("Store not found");
     }
 
-    product = customProduct;
-    repository = this.storeProductCustomRepository;
+    let product;
+    let repository;
+
+    const catalogProduct = await this.storeProductRepository.findById(
+      productId
+    );
+
+    if (catalogProduct) {
+      product = catalogProduct;
+      repository = this.storeProductRepository;
+    } else {
+      const customProduct = await this.storeProductCustomRepository.findById(
+        productId
+      );
+
+      if (!customProduct) {
+        throw new Error("Product not found");
+      }
+
+      product = customProduct;
+      repository = this.storeProductCustomRepository;
+    }
+
+    if (product.storeId !== store.id) {
+      throw new Error("Product does not belong to your store");
+    }
+
+    const updatedFields: string[] = [];
+
+    if (updates.price !== undefined) {
+      await repository.updatePrice(productId, updates.price);
+      updatedFields.push("price");
+    }
+
+    if (updates.quantity !== undefined) {
+      await repository.updatedStock(productId, updates.quantity);
+      updatedFields.push("quantity");
+    }
+
+    if (updates.status !== undefined) {
+      await repository.updateStatus(productId, updates.status);
+      updatedFields.push("status");
+    }
+
+    if (updates.validity_date !== undefined) {
+      await repository.updateValidityDate(productId, updates.validity_date);
+      updatedFields.push("validity_date");
+    }
+
+    if (updates.cost_price !== undefined) {
+      await repository.updateCostPrice(productId, updates.cost_price);
+      updatedFields.push("cost_price");
+    }
+
+    return updatedFields;
   }
-
-  if (product.storeId !== store.id) {
-    throw new Error("Product does not belong to your store");
-  }
-
-  const updatedFields: string[] = [];
-
-  if (updates.price !== undefined) {
-    await repository.updatePrice(productId, updates.price);
-    updatedFields.push("price");
-  }
-
-  if (updates.quantity !== undefined) {
-    await repository.updatedStock(productId, updates.quantity);
-    updatedFields.push("quantity");
-  }
-
-  if (updates.status !== undefined) {
-    await repository.updateStatus(productId, updates.status);
-    updatedFields.push("status");
-  }
-
-  if (updates.validity_date !== undefined) {
-    await repository.updateValidityDate(productId, updates.validity_date);
-    updatedFields.push("validity_date");
-  }
-
-  if (updates.cost_price !== undefined) {
-    await repository.updateCostPrice(productId, updates.cost_price);
-    updatedFields.push("cost_price");
-  }
-
-  return updatedFields;
-}
 
   async findByBarcode(
     barcode: string,
@@ -278,6 +281,34 @@ export class StoreProductService {
     }
 
     return product;
+  }
+
+  async stockSummary(userId: string) {
+    const store = await this.storeRepository.findyStoreByUserId(userId);
+
+    if (!store) {
+      throw new Error("Store not found");
+    }
+
+    const productsSummary =
+      await this.storeProductRepository.countStoreProducts(store.id);
+
+    const productsLowStock =
+      await this.storeProductRepository.countLowStock(store.id, 5);
+      
+    const customProductsSummary =
+      await this.storeProductCustomRepository.countActiveProducts(store.id);
+
+    const customProductsLowStock =
+      await this.storeProductCustomRepository.countLowStock(store.id, 5);
+
+    const summary = productsSummary + customProductsSummary;
+    const lowStock = productsLowStock + customProductsLowStock;
+
+    return {
+      totalProducts: summary,
+      lowStockProducts: lowStock,
+    };
   }
 
   // Verifica se o usuário atingiu o limite de produtos do plano
