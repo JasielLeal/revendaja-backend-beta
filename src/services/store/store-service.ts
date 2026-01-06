@@ -50,7 +50,7 @@ export class StoreService {
       throw new Error("Error creating domain on Vercel:" + error);
     }
 
-    const bannerId = "c9829807-4339-4989-a0ad-50bb20f25489";
+    const bannerId = "4972ab5b-fa9e-447c-bdae-8ec41e53640e";
 
     const newStore = await this.storeRepository.createStore({
       address: data.address,

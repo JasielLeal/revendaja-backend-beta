@@ -70,6 +70,8 @@ export async function StoreController(app: FastifyTypeInstance) {
             subdomain: "",
             userId: "",
             bannerId: "4972ab5b-fa9e-447c-bdae-8ec41e53640e",
+
+            
           },
           userId
         );
