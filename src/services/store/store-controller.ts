@@ -58,6 +58,9 @@ export async function StoreController(app: FastifyTypeInstance) {
         const { name, address, phone, primaryColor } = req.body;
         const userId = req.user.id;
 
+        console.log("Creating store for user ID:", userId);
+        console.log("Store details:", { name, address, phone, primaryColor });
+
         const store = await storeService.createStore(
           {
             name,
@@ -66,7 +69,7 @@ export async function StoreController(app: FastifyTypeInstance) {
             primaryColor,
             subdomain: "",
             userId: "",
-            bannerId: "2e173f00-7b7d-4082-ba19-22b8be5a9b16",
+            bannerId: "4972ab5b-fa9e-447c-bdae-8ec41e53640e",
           },
           userId
         );

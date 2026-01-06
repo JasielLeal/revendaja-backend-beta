@@ -34,6 +34,42 @@ export class ProductPrismaRepository implements ProductRepository {
           rest.category = "Kits";
         }
 
+        if (rest.category === "Kits") {
+          return null;
+        }
+
+        // 🔹 Filtra perfumes com "kit" ou "Kit" no nome
+        if (
+          (rest.category === "perfume" || rest.category === "Perfume") &&
+          (rest.name?.toLowerCase().includes("kit") ||
+            rest.name?.includes("Kit"))
+        ) {
+          return null;
+        }
+
+        // 🔹 Se categoria é perfume e atende critérios femininos, seta como Perfume Feminino
+        if (
+          (rest.category === "perfume" || rest.category === "Perfume") &&
+          (rest.brand?.toLowerCase().includes("ekos") ||
+            rest.brand?.toLowerCase().includes("her code") ||
+            rest.brand?.toLowerCase().includes("liz") ||
+            rest.brand?.toLowerCase().includes("imensi") ||
+            rest.brand?.toLowerCase().includes("diva") ||
+            rest.brand?.toLowerCase().includes("essencial") ||
+            rest.name?.toLowerCase().includes("egeo dolce 100ml feminino") ||
+            rest.name?.toLowerCase().includes("florata gold") ||
+            rest.name?.toLowerCase().includes("miniatura luna absoluta 25ml") ||
+            rest.name?.toLowerCase().includes("celebre sua força 100ml") ||
+            rest.name
+              ?.toLowerCase()
+              .includes("humor da minha vida feminino 100ml") ||
+            rest.name?.toLowerCase().includes("kriska delirio 100ml") ||
+            rest.name?.toLowerCase().includes("linda feminino 100ml") ||
+            rest.name?.toLowerCase().includes("kissme cabernet 50ml"))
+        ) {
+          rest.category = "Perfume Feminino";
+        }
+
         if (
           rest.category === "bodysplash" ||
           rest.category === "body splash" ||
@@ -79,6 +115,10 @@ export class ProductPrismaRepository implements ProductRepository {
           rest.category === "Biscoito"
         ) {
           rest.category = "Personalizado";
+        }
+
+        if (rest.category === "Personalizado") {
+          return null;
         }
 
         if (rest.category === "Luna  ") {
@@ -187,12 +227,19 @@ export class ProductPrismaRepository implements ProductRepository {
       }
     );
 
+    // 🔹 Filtra produtos nulos (kits removidos)
+    const validProducts = productsToInsert.filter(
+      (product) => product !== null
+    );
+
     await prisma.catalog.createMany({
-      data: productsToInsert,
+      data: validProducts,
       skipDuplicates: true, // evita erro se produto já existir
     });
 
-    console.log("✅ Produtos migrados para Catalog com sucesso!");
+    console.log(
+      `✅ Produtos migrados para Catalog com sucesso! (${validProducts.length} produtos inseridos)`
+    );
   }
 
   async migrateProductsForStore(storeId: string): Promise<void> {
