@@ -1,30 +1,20 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-export const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface SendEmailProps {
   to: string;
   subject: string;
-  text?: string;
-  html?: string;
+  html: string;
 }
 
-export async function sendEmail({ to, subject, text, html }: SendEmailProps) {
+export async function sendEmail({ to, subject, html }: SendEmailProps) {
   try {
-    await transporter.sendMail({
-      from: `"Revendaja" <contato@revendaja.com>`,
+    await resend.emails.send({
+      from: "Revendaja <contato@revendaja.com>",
       to,
       subject,
-      text,
-      html: html || text,
+      html,
     });
   } catch (error) {
     console.error("Erro ao enviar email:", error);
