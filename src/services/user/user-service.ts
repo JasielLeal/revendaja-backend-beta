@@ -35,7 +35,7 @@ export class UserService {
       tokenAccess: randomNumbersSix,
     });
 
-    sendEmail({
+    await sendEmail({
       to: data.email,
       subject: "Bem-vindo ao Revendaja!",
       html: sendVerificationEmail(data.name, randomNumbersSix),
