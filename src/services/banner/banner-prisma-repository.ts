@@ -46,4 +46,20 @@ export class BannerPrismaRepository implements BannerRepository {
       desktopUrl: banner.desktop_url,
     };
   }
+
+  async findFirst(): Promise<{ id: string } | null> {
+    const banner = await prisma.banner.findFirst({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    if (!banner) {
+      return null;
+    }
+
+    return {
+      id: banner.id,
+    };
+  }
 }

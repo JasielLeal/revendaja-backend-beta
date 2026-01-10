@@ -8,4 +8,5 @@ export interface BannerRepository {
   }): Promise<BannerEntity>;
 
   findById(id: string): Promise<BannerEntity | null>;
+  findFirst(): Promise<{ id: string } | null>;
 }

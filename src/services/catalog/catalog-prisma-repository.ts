@@ -39,4 +39,19 @@ export class CatalogPrismaRepository implements CatalogRepository {
         : {},
     });
   }
+
+  async create(data: { name: string; brand?: string; company?: string; category?: string; priceSuggested?: number; priceNormal?: number; barcode: string; image?: string; }): Promise<void> {
+    await prisma.catalog.create({
+      data:{
+        category: data.category,
+        name: data.name,
+        brand: data.brand,
+        company: data.company,
+        suggestedPrice: data.priceSuggested,
+        normalPrice: data.priceNormal,
+        barcode: data.barcode,
+        imgUrl: data.image,
+      }
+    });
+  }
 }

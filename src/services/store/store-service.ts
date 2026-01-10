@@ -1,11 +1,13 @@
 import { StoreEntity } from "@/entities/store-entity";
 import { StoreRepository } from "./store-repository";
 import { UserRepository } from "../user/user-repository";
+import { BannerRepository } from "../banner/banner-repository";
 
 export class StoreService {
   constructor(
     private storeRepository: StoreRepository,
-    private userRepository: UserRepository
+    private userRepository: UserRepository,
+    private bannerRepository: BannerRepository
   ) {}
 
   async createStore(data: StoreEntity, userId: string): Promise<void> {
@@ -50,7 +52,7 @@ export class StoreService {
       throw new Error("Error creating domain on Vercel:" + error);
     }
 
-    const bannerId = "4972ab5b-fa9e-447c-bdae-8ec41e53640e";
+    const banner = await this.bannerRepository.findFirst()
 
     const newStore = await this.storeRepository.createStore({
       address: data.address,
@@ -59,7 +61,7 @@ export class StoreService {
       primaryColor: data.primaryColor || "#fc5800",
       userId: userId,
       subdomain: subdomain,
-      bannerId: bannerId,
+      bannerId: banner?.id || null,
     });
   }
 

@@ -47,7 +47,6 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
         const userId = request.user.id;
         const userPlan = request.user.plan;
 
-        let file: any = null;
         let bodyRaw: any = null;
 
         // 🔥 LEITURA CORRETA DO MULTIPART
@@ -97,8 +96,6 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
         const { name, price, quantity, costPrice, category } = bodySchema.parse(bodyRaw);
 
         let imgUrl: string | undefined;
-
-        console.log(file);
 
         // 📌 Upload da imagem (opcional)
         if (fileBuffer && fileMimeType) {

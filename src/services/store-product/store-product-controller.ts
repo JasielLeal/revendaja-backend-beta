@@ -190,8 +190,6 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           })),
         };
 
-        console.log("✅ Resultado serializado:", serializedResult);
-
         return reply.status(200).send(serializedResult);
       } catch (error: any) {
         console.log("❌ ERRO DETALHADO:", error);

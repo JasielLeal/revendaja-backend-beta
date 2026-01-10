@@ -9,6 +9,7 @@ import { OrderPrismaRepository } from "../order/order-prisma-repository";
 import { StoreProductPrismaRepository } from "../store-product/store-product-prisma-repository";
 import { PlanLimitsService } from "@/lib/plan-limits";
 import { StoreProductCustomPrismaRepository } from "../store-product-custom/store-product-custom-prisma-repository";
+import { BannerPrismaRepository } from "../banner/banner-prisma-repository";
 
 export async function StoreController(app: FastifyTypeInstance) {
   const storeRepository = new StorePrismaRepository();
@@ -16,7 +17,8 @@ export async function StoreController(app: FastifyTypeInstance) {
   const orderRepository = new OrderPrismaRepository();
   const storeProductCustomRepository = new StoreProductCustomPrismaRepository();
   const storeProductRepository = new StoreProductPrismaRepository();
-  const storeService = new StoreService(storeRepository, userRepository);
+  const bannerRepository = new BannerPrismaRepository();
+  const storeService = new StoreService(storeRepository, userRepository, bannerRepository);
   const planLimitsService = new PlanLimitsService(
     orderRepository,
     storeProductRepository,
