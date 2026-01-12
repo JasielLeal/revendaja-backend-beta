@@ -497,6 +497,27 @@ export class OrderService {
       throw new Error("Order does not belong to your store");
     }
 
+    // Devolver os produtos ao estoque antes de deletar
+    for (const item of order.items) {
+      const isCustom = item.productType === "custom";
+      const productId = isCustom
+        ? item.storeProductCustomId
+        : item.storeProductId;
+
+      if (!productId) continue;
+
+      const repository = isCustom
+        ? this.storeProductCustomRepository
+        : this.storeProductRepository;
+
+      const product = await repository.findById(productId);
+      if (!product) continue;
+
+      // Devolve a quantidade ao estoque
+      const newQuantity = product.quantity + item.quantity;
+      await repository.updatedStock(productId, newQuantity);
+    }
+
     // Deletar a order (vai deletar os itens em cascata)
     await this.orderRepository.delete(orderId);
   }
