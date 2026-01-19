@@ -104,7 +104,6 @@ export class StoreProductService {
       barcode: catalogProduct.barcode,
       validityDate: data.validityDate,
       costPrice: data.costPrice,
-      isOnSale: onSale,
     });
 
     return;

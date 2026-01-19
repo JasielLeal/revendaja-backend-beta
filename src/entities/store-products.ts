@@ -17,7 +17,6 @@ export class StoreProductEntity {
   imgUrl?: string;
   status?: string;
   storeId: string;
-  isOnSale?: boolean;
   store?: StoreEntity;
   catalog?: CatalogEntity;
   type?: string;

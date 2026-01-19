@@ -21,7 +21,6 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
         barcode: data.barcode,
         validity_date: data.validityDate,
         cost_price: data.costPrice,
-        isOnSale: data.isOnSale || false,
       },
     });
   }
