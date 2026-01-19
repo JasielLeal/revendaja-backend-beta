@@ -540,7 +540,6 @@ export async function StoreProductController(app: FastifyTypeInstance) {
         const products = await storeProductService.findOnSaleProducts(subdomain);
         console.log("✅ Produtos em promoção obtidos:", products);
 
-        // Serializar produtos para corresponder ao schema
         const serializedProducts = products.map((p) => ({
           id: p.id ?? "",
           name: p.name,
