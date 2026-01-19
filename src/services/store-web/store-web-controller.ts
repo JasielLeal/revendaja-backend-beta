@@ -6,6 +6,7 @@ import { StoreProductPrismaRepository } from "../store-product/store-product-pri
 import { StoreWebService } from "./store-web-service";
 import { BannerPrismaRepository } from "../banner/banner-prisma-repository";
 import { StoreProductCustomPrismaRepository } from "../store-product-custom/store-product-custom-prisma-repository";
+import { AppError } from "@/lib/AppError";
 
 export async function StoreWebController(app: FastifyTypeInstance) {
   const storeRepository = new StorePrismaRepository();
@@ -80,7 +81,7 @@ export async function StoreWebController(app: FastifyTypeInstance) {
       } catch (error: any) {
         console.log("❌ ERRO ao buscar informações da loja:", error);
 
-        if (error.message.includes("not found")) {
+        if (error instanceof AppError) {
           return reply.status(404).send({
             error: "Loja não encontrada",
           });

@@ -26,7 +26,7 @@ export interface StoreProductRepository {
   countStoreProducts(storeId: string, query?: string)
   updatedStock(productId: string, newQuantity: number): Promise<void>;
   updateStatus(productId: string, status: string): Promise<void>;
-  updatePrice(productId: string, newPrice: number): Promise<void>;
+  updatePrice(productId: string, newPrice: number, isOnSale: boolean): Promise<void>;
   updateValidityDate(productId: string, newValidityDate: Date): Promise<void>;
   updateCostPrice(productId: string, newCostPrice: number): Promise<void>;
 
@@ -55,4 +55,7 @@ export interface StoreProductRepository {
     storeId: string
   ): Promise<StoreProductEntity | null>;
   countLowStock(storeId: string, limit: number): Promise<number>;
+  findOnSaleProducts(
+    storeId: string,
+  ): Promise<StoreProductEntity[]>;
 }

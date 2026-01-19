@@ -392,7 +392,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
             customList
           );
 
-        
+
 
 
           return reply.status(200).send({
@@ -481,6 +481,92 @@ export async function StoreProductController(app: FastifyTypeInstance) {
       }
       catch (error: any) {
         console.log("❌ ERRO ao obter resumo do estoque:", error);
+        return reply.status(500).send({
+          error: "Erro interno: " + error.message,
+        });
+      }
+    }
+  )
+
+  app.get(
+    "/store-product/on-sale",
+    {
+      schema: {
+        tags: ["Store-Products"],
+        querystring: z.object({
+          subdomain: z.string(),
+        }),
+        description: "Get all products on sale for the store",
+        response: {
+          200: z.array(
+            z.object({
+              id: z.string(),
+              name: z.string(),
+              price: z.number(),
+              quantity: z.number(),
+              catalogPrice: z.number().nullable().optional(),
+              catalogId: z.number().nullable().optional(),
+              isOnSale: z.boolean().optional(),
+              barcode: z.string(),
+              category: z.string(),
+              imgUrl: z.string().nullable(),
+              cost_price: z.number().nullable().optional(),
+              validity_date: z.date().nullable().optional(),
+              status: z.enum(["active", "inactive"]),
+              brand: z.string(),
+              company: z.string(),
+              storeId: z.string(),
+              type: z.string(),
+              createdAt: z.string(),
+              updatedAt: z.string(),
+            })
+          ),
+          404: z.object({
+            error: z.string(),
+          }),
+
+          500: z.object({
+            error: z.string(),
+          }),
+
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+
+        const { subdomain } = req.query;
+
+        const products = await storeProductService.findOnSaleProducts(subdomain);
+        console.log("✅ Produtos em promoção obtidos:", products);
+
+        // Serializar produtos para corresponder ao schema
+        const serializedProducts = products.map((p) => ({
+          id: p.id ?? "",
+          name: p.name,
+          price: p.price,
+          quantity: p.quantity,
+          catalogPrice: p.catalogPrice,
+          catalogId: p.catalogId,
+          isOnSale: p.isOnSale,
+          barcode: p.barcode,
+          category: p.category,
+          imgUrl: p.imgUrl,
+          cost_price: p.costPrice,
+          validity_date: p.validityDate,
+          status: (p.status || "active") as "active" | "inactive",
+          brand: p.brand,
+          company: p.company,
+          storeId: p.storeId ?? "",
+          type: p.type,
+          createdAt: p.createdAt.toISOString(),
+          updatedAt: p.updatedAt.toISOString(),
+        }));
+
+        return reply.status(200).send(serializedProducts);
+      }
+      catch (error: any) {
+        console.log("❌ ERRO ao obter produtos em promoção:", error);
         return reply.status(500).send({
           error: "Erro interno: " + error.message,
         });

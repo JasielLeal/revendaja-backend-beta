@@ -57,6 +57,7 @@ CREATE TABLE "store_products" (
     "quantity" INTEGER NOT NULL DEFAULT 0,
     "catalogPrice" DOUBLE PRECISION,
     "catalogId" INTEGER,
+    "isOnSale" BOOLEAN NOT NULL DEFAULT false,
     "barcode" TEXT NOT NULL,
     "category" TEXT,
     "imgUrl" TEXT,

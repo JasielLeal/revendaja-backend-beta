@@ -2,6 +2,7 @@ import { StoreRepository } from "../store/store-repository";
 import { StoreProductRepository } from "../store-product/store-product-repository";
 import { BannerRepository } from "../banner/banner-repository";
 import { StoreProductCustomPrismaRepository } from "../store-product-custom/store-product-custom-prisma-repository";
+import { AppError } from "@/lib/AppError";
 
 interface ProductFilters {
   category?: string;
@@ -25,7 +26,7 @@ export class StoreWebService {
     const store = await this.storeRepository.findBySubdomain(subdomain);
 
     if (!store) {
-      throw new Error("Store not found");
+      throw new AppError("Store not found", 404);
     }
 
     const categoryCustom = await this.storeProductCustomRepository.getUniqueCategories(
@@ -117,7 +118,7 @@ export class StoreWebService {
     const store = await this.storeRepository.findBySubdomain(subdomain);
 
     if (!store) {
-      throw new Error("Store not found");
+      throw new AppError("Store not found", 404);
     }
 
     const customResult =

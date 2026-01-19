@@ -21,6 +21,7 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
         barcode: data.barcode,
         validity_date: data.validityDate,
         cost_price: data.costPrice,
+        isOnSale: data.isOnSale || false,
       },
     });
   }
@@ -186,13 +187,14 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     return;
   }
 
-  async updatePrice(productId: string, newPrice: number): Promise<void> {
+  async updatePrice(productId: string, newPrice: number, isOnSale: boolean): Promise<void> {
     await prisma.storeProduct.update({
       where: {
         id: productId,
       },
       data: {
         price: newPrice,
+        isOnSale: isOnSale,
       },
     });
 
@@ -383,5 +385,16 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
       },
     });
     return count;
+  }
+
+  async findOnSaleProducts(storeId: string): Promise<StoreProductEntity[]> {
+    const products = await prisma.storeProduct.findMany({
+      where: {
+        storeId,
+        isOnSale: true,
+      },
+      take: 8
+    });
+    return products as StoreProductEntity[];
   }
 }

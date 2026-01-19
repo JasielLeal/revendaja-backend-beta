@@ -45,7 +45,7 @@ export class StoreProductService {
     private catalogRepository: CatalogRepository,
     private storeRepository: StoreRepository,
     private storeProductCustomRepository: StoreProductCustomRepository
-  ) {}
+  ) { }
 
   async addCatalogProduct(data: AddCatalogProductDTO): Promise<void> {
     const store = await this.storeRepository.findyStoreByUserId(data.userId);
@@ -76,12 +76,19 @@ export class StoreProductService {
     );
 
     if (storeProductExist) {
-      throw new Error("Produto já existe na loja");
+      throw new AppError("Produto já existe na loja", 400);
     }
 
     if (data.validityDate == null || undefined) {
       data.validityDate = new Date();
     }
+
+    console.log("Catalog Product:", catalogProduct.normalPrice);
+    console.log("Final Price:", finalPrice);
+
+    const onSale = finalPrice < catalogProduct.normalPrice;
+
+    console.log("Is On Sale:", onSale);
 
     await this.storeProductRepository.createStoreProduct({
       name: catalogProduct.name,
@@ -97,6 +104,7 @@ export class StoreProductService {
       barcode: catalogProduct.barcode,
       validityDate: data.validityDate,
       costPrice: data.costPrice,
+      isOnSale: onSale,
     });
 
     return;
@@ -148,7 +156,7 @@ export class StoreProductService {
         totalPages: Math.ceil(
           ((products.pagination?.total || 0) +
             customProducts.pagination.total) /
-            (pageSize || 10)
+          (pageSize || 10)
         ),
       },
     };
@@ -203,7 +211,13 @@ export class StoreProductService {
     const updatedFields: string[] = [];
 
     if (updates.price !== undefined) {
-      await repository.updatePrice(productId, updates.price);
+
+      let onSale = false;
+      if (updates.price < catalogProduct?.catalogPrice) {
+        onSale = true;
+      }
+
+      await repository.updatePrice(productId, updates.price, onSale);
       updatedFields.push("price");
     }
 
@@ -295,7 +309,7 @@ export class StoreProductService {
 
     const productsLowStock =
       await this.storeProductRepository.countLowStock(store.id, 5);
-      
+
     const customProductsSummary =
       await this.storeProductCustomRepository.countActiveProducts(store.id);
 
@@ -309,6 +323,15 @@ export class StoreProductService {
       totalProducts: summary,
       lowStockProducts: lowStock,
     };
+  }
+
+  async findOnSaleProducts(subdomain: string): Promise<StoreProductEntity[]> {
+    const store = await this.storeRepository.findBySubdomain(subdomain);
+    if (!store) {
+      throw new Error("Store not found");
+    }
+    const products = await this.storeProductRepository.findOnSaleProducts(store.id);
+    return products;
   }
 
   // Verifica se o usuário atingiu o limite de produtos do plano

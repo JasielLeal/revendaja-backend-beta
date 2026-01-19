@@ -15,27 +15,27 @@ datasource db {
 }
 
 model User {
-  id               String       @id @default(uuid())
+  id               String   @id @default(uuid())
   name             String
-  email            String       @unique
+  email            String   @unique
   password         String
   tokenAccess      String?
-  role             String       @default("Member")
-  plan             String       @default("Free")
+  role             String   @default("Member")
+  plan             String   @default("Free")
   stripeCustomerId String?
-  emailVerified    Boolean      @default(false)
-  firstAccess      Boolean      @default(true)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  emailVerified    Boolean  @default(false)
+  firstAccess      Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  stores           Store[]
-  pushTokens       PushToken[]
+  stores     Store[]
+  pushTokens PushToken[]
 
   @@map("users")
 }
 
 model Catalog {
-  id             Int             @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   name           String
   normalPrice    Float
   suggestedPrice Float
@@ -44,167 +44,170 @@ model Catalog {
   imgUrl         String?
   brand          String?
   company        String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  storeProducts  StoreProduct[]
+  storeProducts StoreProduct[]
+
   @@map("catalog")
 }
 
 model Store {
-  id                  String                @id @default(uuid())
-  name                String                @unique
-  subdomain           String                @unique
-  address             String
-  phone               String?
-  primaryColor        String                @default("#fc5800")
-  bannerId            String?
-  banner              Banner?              @relation(fields: [bannerId], references: [id], onDelete: SetNull)
-  userId              String
-  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade )
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  id           String   @id @default(uuid())
+  name         String   @unique
+  subdomain    String   @unique
+  address      String
+  phone        String?
+  primaryColor String   @default("#fc5800")
+  bannerId     String?
+  banner       Banner?  @relation(fields: [bannerId], references: [id], onDelete: SetNull)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   storeProducts       StoreProduct[]
   storeProductCustoms StoreProductCustom[]
   orders              Order[]
   pushTokens          PushToken[]
+
   @@map("stores")
 }
 
 model StoreProduct {
-  id            String       @id @default(uuid())
-  name          String
-  price         Float
-  quantity      Int          @default(0)
+  id       String @id @default(uuid())
+  name     String
+  price    Float
+  quantity Int    @default(0)
 
   // Para produtos do catálogo
   catalogPrice  Float?
   catalogId     Int?
+  isOnSale      Boolean   @default(false)
   barcode       String
   category      String?
   imgUrl        String?
   cost_price    Float?
   validity_date DateTime?
-  status        String?      @default("active")
+  status        String?   @default("active")
   brand         String
   company       String
   storeId       String
-  store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade )
-  catalog       Catalog?    @relation(fields: [catalogId], references: [id])
+  store         Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  catalog       Catalog?  @relation(fields: [catalogId], references: [id])
 
-  type          String       @default("catalog")
+  type String @default("catalog")
 
   // Vendas deste produto
-  orderItems    OrderItem[]
+  orderItems OrderItem[]
 
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([storeId, catalogId])
   @@map("store_products")
 }
 
 model StoreProductCustom {
-  id            String       @id @default(uuid())
+  id            String    @id @default(uuid())
   name          String
   price         Float
-  quantity      Int          @default(0)
+  quantity      Int       @default(0)
   barcode       String
   category      String?
   imgUrl        String?
   cost_price    Float?
   validity_date DateTime?
-  status        String?      @default("active")
+  status        String?   @default("active")
   brand         String
   company       String
   storeId       String
-  store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade )
+  store         Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
-  type          String       @default("custom")
+  type String @default("custom")
 
   // Vendas deste produto
-  orderItems    OrderItem[]
+  orderItems OrderItem[]
 
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("store_product_customs")
 }
 
 model Order {
-  id                   String       @id @default(uuid())
-  orderNumber          String       @unique
-  status               String       @default("Approved")
+  id                   String      @id @default(uuid())
+  orderNumber          String      @unique
+  status               String      @default("Approved")
   total                Float
   customerName         String?
   customerPhone        String?
-  paymentMethod        String       @default("Pix")
-  isDelivery           Boolean      @default(false)
+  paymentMethod        String      @default("Pix")
+  isDelivery           Boolean     @default(false)
   deliveryStreet       String?
   deliveryNumber       String?
   deliveryNeighborhood String?
   storeId              String
   store                Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
   items                OrderItem[]
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
   @@map("orders")
 }
 
 model OrderItem {
-  id                                             String               @id @default(uuid())
-  quantity                                       Int
-  price       Float    // Preço na hora da venda
-  name        String   // Nome na hora da venda
-  imgUrl                                         String
+  id       String @id @default(uuid())
+  quantity Int
+  price    Float // Preço na hora da venda
+  name     String // Nome na hora da venda
+  imgUrl   String
 
   // Produto: pode ser do catálogo (StoreProduct) ou customizado (StoreProductCustom)
-  productType                                    String               @default("catalog") // "catalog" ou "custom"
-  storeProductId                                 String?
-  storeProduct                                   StoreProduct?       @relation(fields: [storeProductId], references: [id], onDelete: Cascade)
+  productType    String        @default("catalog") // "catalog" ou "custom"
+  storeProductId String?
+  storeProduct   StoreProduct? @relation(fields: [storeProductId], references: [id], onDelete: Cascade)
 
-  storeProductCustomId                           String?
-  storeProductCustom                             StoreProductCustom? @relation(fields: [storeProductCustomId], references: [id], onDelete: Cascade)
+  storeProductCustomId String?
+  storeProductCustom   StoreProductCustom? @relation(fields: [storeProductCustomId], references: [id], onDelete: Cascade)
 
-  orderId                                        String
-  order                                          Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  createdAt                                      DateTime             @default(now())
-  updatedAt                                      DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("order_items")
 }
 
 model Banner {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   mobile_url  String
   desktop_url String
   text        String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  stores      Store[]
+  stores Store[]
+
   @@map("banners")
 }
 
 model PushToken {
-  id                                                                String     @id @default(uuid())
-  token                                                             String     @unique
-  provider      String    // "expo", "fcm" ou "apns"
-  userId        String    // Dono da loja que receberá notificações
-  user                                                              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  storeId                                                           String
-  store                                                             Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  deviceId      String?   // Identificador único do dispositivo
-  deviceName    String?   // Nome do dispositivo
-  isActive                                                          Boolean    @default(true)
-  lastUsedAt                                                        DateTime?
-  createdAt                                                         DateTime   @default(now())
-  updatedAt                                                         DateTime   @updatedAt
+  id         String    @id @default(uuid())
+  token      String    @unique
+  provider   String // "expo", "fcm" ou "apns"
+  userId     String // Dono da loja que receberá notificações
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeId    String
+  store      Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  deviceId   String? // Identificador único do dispositivo
+  deviceName String? // Nome do dispositivo
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  @@unique([token,                                                  storeId])
+  @@unique([token, storeId])
   @@map("push_tokens")
 }
-
