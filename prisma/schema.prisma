@@ -84,7 +84,8 @@ model StoreProduct {
   type          String      @default("catalog")
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-  campoTest     String?
+  isOnSale      Boolean?    @default(false)
+  campoTest     Boolean?    @default(false)
   orderItems    OrderItem[]
   catalog       Catalog?    @relation(fields: [catalogId], references: [id])
   store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
@@ -104,7 +105,7 @@ model StoreProductCustom {
   cost_price    Float?
   validity_date DateTime?
   status        String?     @default("active")
-  brand         String?
+  brand         String
   company       String
   storeId       String
   type          String      @default("custom")

@@ -22,6 +22,7 @@ export class StoreProductEntity {
   type?: string;
   createdAt?: Date;
   updatedAt?: Date;
+  isOnSale?: boolean;
 
   constructor(partial: Partial<StoreProductEntity>) {
     Object.assign(this, partial);
