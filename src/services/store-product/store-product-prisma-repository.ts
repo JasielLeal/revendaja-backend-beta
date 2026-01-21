@@ -305,6 +305,9 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     const where: any = {
       storeId,
       status: "active",
+      quantity: {
+        gt: 0,
+      }
     };
 
     // Filtro por categoria
@@ -392,6 +395,9 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
       where: {
         storeId,
         isOnSale: true,
+        quantity: {
+          gt: 0,
+        }
       },
       take: 8
     });

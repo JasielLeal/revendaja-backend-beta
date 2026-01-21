@@ -36,6 +36,9 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
           404: z.object({
             message: z.string(),
           }),
+          413: z.object({
+            message: z.string(),
+          }),
           500: z.object({
             message: z.string(),
           }),
@@ -58,7 +61,6 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
           if (part.type === "field" && part.fieldname === "body") {
             try {
               bodyRaw = JSON.parse(part.value as string);
-              ;
             } catch {
               return reply.status(400).send({
                 message: "Body inválido (JSON malformado)",
@@ -67,14 +69,30 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
           }
 
           if (part.type === "file") {
-            if (!part.mimetype.startsWith("image/")) {
+            // logs para diagnosticar problemas vindos da galeria
+            console.log("Upload file:", { filename: part.filename, mimetype: part.mimetype });
+
+            // Alguns dispositivos/clients podem enviar arquivos sem mimetype
+            // ou com mimetype genérico. Aceitamos também por extensão comum.
+            const filename = part.filename || "";
+            const ext = filename.split('.').pop()?.toLowerCase() || "";
+            const allowedExts = ["jpg", "jpeg", "png", "gif", "heic", "heif", "webp"];
+
+            if (!(part.mimetype && part.mimetype.startsWith("image/")) && !allowedExts.includes(ext)) {
               return reply.status(400).send({
-                message: "Invalid image type",
+                message: "Invalid image type or missing mimetype. Envie JPG/PNG/HEIC/WEBP",
               });
             }
 
             fileBuffer = await part.toBuffer(); // 🔥 CONSUME O STREAM
-            fileMimeType = part.mimetype;
+            fileMimeType = part.mimetype || (ext === "jpg" || ext === "jpeg" ? "image/jpeg" : ext === "png" ? "image/png" : undefined);
+
+            console.log("Received file size:", fileBuffer.length);
+            // Segurança: rejeitar se exceder limite razoável (definido também no server)
+            const maxSize = 5 * 1024 * 1024; // 5 MB
+            if (fileBuffer.length > maxSize) {
+              return reply.status(413).send({ message: "Image too large (max 5MB)" });
+            }
           }
         }
 

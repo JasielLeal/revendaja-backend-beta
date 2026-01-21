@@ -27,7 +27,8 @@ import { StoreProductCustomController } from "./services/store-product-custom/st
 import multipart from "@fastify/multipart";
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
-app.register(multipart);
+// Limitar tamanho máximo de arquivo para evitar OOM em uploads grandes (5 MB padrão)
+app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024 } });
 // IMPORTANTE: Registrar o content parser ANTES de tudo
 // Capture raw request body for routes that need it (Stripe webhooks).
 // We parse JSON as buffer, attach it to request.rawBody, and still return the parsed object
