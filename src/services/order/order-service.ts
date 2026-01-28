@@ -331,6 +331,8 @@ export class OrderService {
         status
       );
 
+    console.log(orders)
+
     const allItems = orders.flatMap((order) => order.items);
 
     // Calcula métricas com base nos pedidos da página

@@ -13,7 +13,7 @@ export class UserService {
   constructor(
     private userRepository: UserRepository,
     private storeRepository: StoreRepository
-  ) {}
+  ) { }
 
   async userCreate(data: UserEntity): Promise<void> {
     const userAlreadyExists = await this.userRepository.findByEmail(data.email);
@@ -62,6 +62,14 @@ export class UserService {
     firstAccess: boolean;
     token: string;
     store: boolean | null;
+    storeInformation: {
+      name: string | null;
+      subdomain: string | null;
+      phone: string | null;
+      address: string | null;
+      primaryColor: string | null;
+    };
+
   }> {
     console.time("signin");
     console.time("find");
@@ -98,6 +106,14 @@ export class UserService {
         role: user.role,
         plan: user.plan,
         firstAccess: user.firstAccess,
+        store: store ? true : false,
+        storeInformation: {
+          name: store?.name ?? null,
+          subdomain: store?.subdomain ?? null,
+          phone: store?.phone ?? null,
+          address: store?.address ?? null,
+          primaryColor: store?.primaryColor ?? null,
+        },
       },
       process.env.JWT_SECRET,
       {
@@ -116,6 +132,13 @@ export class UserService {
       firstAccess: user.firstAccess,
       token: token,
       store: store ? true : false,
+      storeInformation: {
+        name: store?.name ?? null,
+        subdomain: store?.subdomain ?? null,
+        phone: store?.phone ?? null,
+        address: store?.address ?? null,
+        primaryColor: store?.primaryColor ?? null,
+      }
     };
   }
 

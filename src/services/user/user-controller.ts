@@ -92,6 +92,13 @@ export async function UserController(app: FastifyTypeInstance) {
             firstAccess: z.boolean(),
             token: z.string(),
             store: z.boolean().nullable(),
+            storeInformation: z.object({
+              name: z.string().nullable(),
+              subdomain: z.string().nullable(),
+              phone: z.string().nullable(),
+              address: z.string().nullable(),
+              primaryColor: z.string().nullable(),
+            }),
           }),
           401: z.object({
             error: z.string().default("Invalid email or password"),
@@ -259,11 +266,20 @@ export async function UserController(app: FastifyTypeInstance) {
             valid: z.boolean(),
             user: z.object({
               id: z.string(),
-              email: z.string(),
               name: z.string().nullable(),
-              role: z.string(),
-              plan: z.string().optional(),
-              firstAccess: z.boolean().optional(),
+              email: z.string(),
+              plan: z.string(),
+              createdAt: z.string(),
+              firstAccess: z.boolean(),
+              token: z.string(),
+              store: z.boolean().nullable(),
+              storeInformation: z.object({
+                name: z.string().nullable(),
+                subdomain: z.string().nullable(),
+                phone: z.string().nullable(),
+                address: z.string().nullable(),
+                primaryColor: z.string().nullable(),
+              }),
             }),
           }),
           401: z.object({
@@ -282,9 +298,18 @@ export async function UserController(app: FastifyTypeInstance) {
             id: req.user.id,
             email: req.user.email,
             name: req.user.name,
-            role: req.user.role,
             plan: req.user.plan,
             firstAccess: req.user.firstAccess,
+            createdAt: req.user.createdAt,
+            token: req.user.token,
+            store: req.user.store,
+            storeInformation: {
+              name: req.user.storeInformation.name,
+              subdomain: req.user.storeInformation.subdomain,
+              phone: req.user.storeInformation.phone,
+              address: req.user.storeInformation.address,
+              primaryColor: req.user.storeInformation.primaryColor,
+            }
           },
         });
       } catch (err: any) {

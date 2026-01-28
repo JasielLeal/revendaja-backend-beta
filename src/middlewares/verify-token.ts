@@ -10,6 +10,8 @@ export async function verifyToken(req: FastifyRequest, reply: FastifyReply) {
 
   const token = authHeader.split(" ")[1]; // "Bearer <token>"
 
+  console.log("Verifying token:", token);
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       id: string;
@@ -20,7 +22,25 @@ export async function verifyToken(req: FastifyRequest, reply: FastifyReply) {
       firstAccess?: boolean;
     };
 
-    req.user = decoded; // <-- injeta o user no request
+    console.log("Token decoded:", decoded);
+    
+    req.user = {
+      id: decoded.id,
+      name: decoded.name || "",
+      email: decoded.email,
+      plan: decoded.plan || "",
+      createdAt: "",
+      firstAccess: decoded.firstAccess || false,
+      token: token,
+      store: false,
+      storeInformation: {
+        name: "",
+        subdomain: "",
+        phone: "",
+        address: "",
+        primaryColor: ""
+      }
+    };
   } catch (error) {
     return reply.status(401).send({ error: "Token inválido" });
   }
