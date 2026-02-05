@@ -50,6 +50,7 @@ model Store {
   subdomain           String               @unique
   address             String
   phone               String?
+  logo                String?
   primaryColor        String               @default("#fc5800")
   bannerId            String?
   userId              String
@@ -61,6 +62,7 @@ model Store {
   storeProducts       StoreProduct[]
   banner              Banner?              @relation(fields: [bannerId], references: [id])
   user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeSettings       StoreSettings?
 
   @@map("stores")
 }
@@ -186,4 +188,16 @@ model PushToken {
 
   @@unique([token, storeId])
   @@map("push_tokens")
+}
+
+model StoreSettings {
+  id        String   @id @default(uuid())
+  storeId   String   @unique
+  pixKey    String
+  pixName   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@map("store_settings")
 }

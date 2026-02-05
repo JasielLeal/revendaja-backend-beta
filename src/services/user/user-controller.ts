@@ -18,9 +18,9 @@ export async function UserController(app: FastifyTypeInstance) {
         tags: ["Users"],
         description: "Create a new user",
         body: z.object({
-          name: z.string().min(1),
-          email: z.string().email(),
-          password: z.string().min(6),
+          name: z.string().min(1).default("Jasiel"),
+          email: z.string().email().default("jasieloficial@hotmail.com"),
+          password: z.string().min(6).default("123456"),
         }),
         response: {
           201: z.object({
@@ -34,6 +34,7 @@ export async function UserController(app: FastifyTypeInstance) {
     },
     async (req, reply) => {
       try {
+
         const { email, name, password } = req.body;
         await userService.userCreate({ name, email, password });
         return reply.status(201).send();

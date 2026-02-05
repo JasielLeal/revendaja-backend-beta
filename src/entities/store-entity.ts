@@ -10,6 +10,7 @@ export class StoreEntity {
   phone: string;
   primaryColor?: string;
   bannerUrl?: string;
+  logo?: string;
   userId: string;
   user?: UserEntity;
   bannerId: string;

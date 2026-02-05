@@ -21,8 +21,6 @@ export async function verifyToken(req: FastifyRequest, reply: FastifyReply) {
       plan?: string;
       firstAccess?: boolean;
     };
-
-    console.log("Token decoded:", decoded);
     
     req.user = {
       id: decoded.id,

@@ -35,11 +35,16 @@ export class UserService {
       tokenAccess: randomNumbersSix,
     });
 
-    await sendEmail({
-      to: data.email,
-      subject: "Bem-vindo ao Revendaja!",
-      html: sendVerificationEmail(data.name, randomNumbersSix),
-    });
+    try {
+      await sendEmail({
+        to: data.email,
+        subject: "Bem-vindo ao Revendaja!",
+        html: sendVerificationEmail(data.name, randomNumbersSix),
+      });
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
+      throw error;
+    }
 
     return;
   }
@@ -174,7 +179,7 @@ export class UserService {
 
     await this.userRepository.updateTokenAccess(user.email, otpCode);
 
-    sendEmail({
+    await sendEmail({
       to: user.email,
       subject: "Código de Recuperação de Senha",
       html: forgotPassword(user.name, otpCode),
@@ -214,7 +219,7 @@ export class UserService {
 
     await this.userRepository.updatePassword(user.email, passwordHash);
     await this.userRepository.updateTokenAccess(user.email, "");
-    sendEmail({
+    await sendEmail({
       to: user.email,
       subject: "Senha Alterada com Sucesso",
       html: passwordChanged(user.name),

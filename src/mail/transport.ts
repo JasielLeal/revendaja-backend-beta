@@ -10,12 +10,18 @@ interface SendEmailProps {
 
 export async function sendEmail({ to, subject, html }: SendEmailProps) {
   try {
-    await resend.emails.send({
+    if (!process.env.RESEND_API_KEY) {
+      console.error("RESEND_API_KEY não definido");
+      throw new Error("RESEND_API_KEY não definido");
+    }
+
+    const result = await resend.emails.send({
       from: "Revendaja <contato@revendaja.com>",
       to,
       subject,
       html,
     });
+    console.info("Email enviado", { to, subject, id: result?.data?.id });
   } catch (error) {
     console.error("Erro ao enviar email:", error);
     throw new Error("Falha ao enviar email");
