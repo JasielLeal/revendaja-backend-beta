@@ -107,7 +107,7 @@ export async function StoreController(app: FastifyTypeInstance) {
             primaryColor: z.string(),
             bannerUrl: z.string().optional(),
             userId: z.string(),
-            logo: z.string().optional(),
+            logo: z.string().optional().nullable(),
           }),
           404: z.object({
             error: z.string(),
@@ -120,6 +120,8 @@ export async function StoreController(app: FastifyTypeInstance) {
       try {
         const userId = req.user.id;
         const store = await storeService.findStoreByUserId(userId);
+
+        console.log(store)
 
         if (!store) {
           return reply.status(404).send({ error: "Store not found" });
