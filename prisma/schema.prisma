@@ -33,7 +33,7 @@ model Catalog {
   normalPrice    Float
   suggestedPrice Float
   category       String
-  barcode        String?
+  barcode        String?        @unique
   imgUrl         String?
   brand          String?
   company        String?

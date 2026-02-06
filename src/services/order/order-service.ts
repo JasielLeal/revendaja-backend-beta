@@ -236,6 +236,7 @@ export class OrderService {
 
     // Enviar notificações push apenas para o dono da loja
     try {
+      console.log("🔔 Enviando notificações push para o dono da loja...");
       const pushTokenRepository = new PushTokenRepository();
       const tokensByProvider =
         await pushTokenRepository.findUserTokensByStoreIdGroupedByProvider(
@@ -261,6 +262,8 @@ export class OrderService {
           source: "online",
         },
       });
+
+      console.log("✅ Notificações push enviadas para o dono da loja");
     } catch (error) {
       console.error("❌ Erro ao enviar notificações push:", error);
     }
