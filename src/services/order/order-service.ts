@@ -36,7 +36,7 @@ export class OrderService {
     private storeRepository: StoreRepository,
     private storeProductRepository: StoreProductRepository,
     private storeProductCustomRepository: StoreProductCustomRepository
-  ) {}
+  ) { }
 
   async createOrder(
     data: CreateOrderDTO,
@@ -243,6 +243,8 @@ export class OrderService {
           store.userId,
           store.id
         );
+
+      console.log("Tokens por provedor:", tokensByProvider);
 
       const formattedTotal = (Number(createdOrder.total) / 100).toLocaleString(
         "pt-BR",
