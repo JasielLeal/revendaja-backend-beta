@@ -83,10 +83,9 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           message: "Store product created successfully",
         });
       } catch (error: any) {
-        console.log("❌ ERRO DETALHADO:", error);
-        console.log("📋 Stack:", error.stack);
-
-        console.log("📋 Error Message:", error.message);
+        console.error("❌ ERRO DETALHADO:", error);
+        console.error("📋 Stack:", error.stack);
+        console.error("📋 Error Message:", error.message);
 
         if (error.message.includes("Produto já existe na loja")) {
           return reply.status(409).send({
@@ -178,8 +177,6 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           category
         );
 
-        console.log("✅ Produtos retornados:", result);
-
         // converter Date -> string ISO
         const serializedResult = {
           ...result,
@@ -192,8 +189,8 @@ export async function StoreProductController(app: FastifyTypeInstance) {
 
         return reply.status(200).send(serializedResult);
       } catch (error: any) {
-        console.log("❌ ERRO DETALHADO:", error);
-        console.log("📋 Stack:", error.stack);
+        console.error("❌ ERRO DETALHADO:", error);
+        console.error("📋 Stack:", error.stack);
 
         return reply.status(500).send({
           error: "Internal server error: " + error.message,
@@ -273,7 +270,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           updatedFields,
         });
       } catch (error: any) {
-        console.log("❌ ERRO ao atualizar produto:", error);
+        console.error("❌ ERRO ao atualizar produto:", error);
 
         if (error.message.includes("not found")) {
           return reply.status(404).send({
@@ -371,7 +368,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           id,
           page,
           pageSize
-        )
+        );
 
         if (!product) {
           return reply.status(404).send({
@@ -387,13 +384,6 @@ export async function StoreProductController(app: FastifyTypeInstance) {
           Array.isArray((product as any).products)
         ) {
           const customList = product as any;
-          console.log(
-            "✅ Lista de produtos customizados retornada:",
-            customList
-          );
-
-
-
 
           return reply.status(200).send({
             products: customList.products.map((p: any) => ({
@@ -441,7 +431,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
             "Formato inesperado retornado por findByBarcode. Consulte os logs para detalhes.",
         });
       } catch (error: any) {
-        console.log("❌ ERRO ao buscar produto por código de barras:", error);
+        console.error("❌ ERRO ao buscar produto por código de barras:", error);
         return reply.status(500).send({
           error: "Erro interno: " + error.message,
         });
@@ -475,12 +465,10 @@ export async function StoreProductController(app: FastifyTypeInstance) {
         const { id } = req.user;
         const summary = await storeProductService.stockSummary(id);
 
-        console.log("✅ Resumo do estoque obtido:", summary);
-
         return reply.status(200).send(summary);
       }
       catch (error: any) {
-        console.log("❌ ERRO ao obter resumo do estoque:", error);
+        console.error("❌ ERRO ao obter resumo do estoque:", error);
         return reply.status(500).send({
           error: "Erro interno: " + error.message,
         });
@@ -537,7 +525,6 @@ export async function StoreProductController(app: FastifyTypeInstance) {
         const { subdomain } = req.query;
 
         const products = await storeProductService.findOnSaleProducts(subdomain);
-        console.log("✅ Produtos em promoção obtidos:", products);
 
         const serializedProducts = products.map((p) => ({
           id: p.id ?? "",
@@ -563,7 +550,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
         return reply.status(200).send(serializedProducts);
       }
       catch (error: any) {
-        console.log("❌ ERRO ao obter produtos em promoção:", error);
+        console.error("❌ ERRO ao obter produtos em promoção:", error);
         return reply.status(500).send({
           error: "Erro interno: " + error.message,
         });

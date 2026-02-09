@@ -25,15 +25,11 @@ export async function WhatsappWebhookController(app: FastifyTypeInstance) {
         process.env.WHATSAPP_VERIFY_TOKEN ||
         "EAAQjf2LGwNUBP06isiTkcctDYDo8hBtZCsnbMpKiSwZC1xakNssdF5owgz5iVK3mdXZAqbyrjsZC7X6qe5BrrYJKnS8ogxvUxWZA8Wis2Bq7RkZBEcOgBeIZC2B8KdA8p6CGqER1IDGevRVPiJra1jUm5qt7eilB3pRCC1B0XSPvZA3yTBtSWejye0d2uXl8QjanP4OaqxuFK3MGN95QK8aEVJZB8oOwhfx2oHPdZAbpYCcjZC0CeeMvSaGHUFhpoFIeePUstFb3TN1yRpFZB2xscdC61uZC2lAZDZD";
 
-      console.log("🔍 Verificação de webhook recebida");
-      console.log("Mode:", mode);
-      console.log("Token recebido:", token);
+      
 
       if (mode === "subscribe" && token === VERIFY_TOKEN) {
-        console.log("✅ Webhook verificado com sucesso!");
         return reply.status(200).send(challenge);
       } else {
-        console.log("❌ Falha na verificação do webhook");
         return reply.status(403).send("Forbidden");
       }
     }
@@ -52,8 +48,7 @@ export async function WhatsappWebhookController(app: FastifyTypeInstance) {
       try {
         const body = req.body as any;
 
-        console.log("📨 Webhook WhatsApp recebido:");
-        console.log(JSON.stringify(body, null, 2));
+        
 
         // Verificar se há entradas de status
         if (body.entry && body.entry.length > 0) {
@@ -66,11 +61,7 @@ export async function WhatsappWebhookController(app: FastifyTypeInstance) {
                   // Status de mensagens
                   if (value.statuses && value.statuses.length > 0) {
                     for (const status of value.statuses) {
-                      console.log("\n📊 STATUS DA MENSAGEM:");
-                      console.log("ID:", status.id);
-                      console.log("Status:", status.status);
-                      console.log("Timestamp:", status.timestamp);
-                      console.log("Destinatário:", status.recipient_id);
+                      
 
                       // Diferentes status possíveis:
                       // - sent: mensagem enviada ao servidor do WhatsApp
@@ -79,19 +70,7 @@ export async function WhatsappWebhookController(app: FastifyTypeInstance) {
                       // - failed: falha no envio
 
                       if (status.status === "failed") {
-                        console.log("❌ FALHA NO ENVIO!");
-                        if (status.errors && status.errors.length > 0) {
-                          console.log(
-                            "Erros:",
-                            JSON.stringify(status.errors, null, 2)
-                          );
-                        }
-                      } else if (status.status === "delivered") {
-                        console.log("✅ Mensagem entregue com sucesso!");
-                      } else if (status.status === "read") {
-                        console.log("👀 Mensagem lida!");
-                      } else if (status.status === "sent") {
-                        console.log("📤 Mensagem enviada!");
+                        // failure status received; handled silently here
                       }
                     }
                   }
@@ -99,15 +78,7 @@ export async function WhatsappWebhookController(app: FastifyTypeInstance) {
                   // Mensagens recebidas (respostas do usuário)
                   if (value.messages && value.messages.length > 0) {
                     for (const message of value.messages) {
-                      console.log("\n💬 MENSAGEM RECEBIDA:");
-                      console.log("De:", message.from);
-                      console.log("ID:", message.id);
-                      console.log("Timestamp:", message.timestamp);
-                      console.log("Tipo:", message.type);
-
-                      if (message.text) {
-                        console.log("Texto:", message.text.body);
-                      }
+                      
                     }
                   }
                 }

@@ -214,4 +214,100 @@ export class OrderPrismaRepository implements OrderRepository {
       },
     });
   }
+
+  async updateDate(orderId: string, newDate: Date): Promise<OrderEntity> {
+    const updatedOrder = await prisma.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        createdAt: newDate,
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    return updatedOrder as OrderEntity;
+  }
+
+ async monthlySummary(storeId: string, year: number): Promise<{ label: string; fullLabel: string; value: number; brands: { name: string; value: number; }[]; }[]> {
+    const months = [
+      { label: "Jan", fullLabel: "Janeiro" },
+      { label: "Feb", fullLabel: "Fevereiro" },
+      { label: "Mar", fullLabel: "Março" },
+      { label: "Apr", fullLabel: "Abril" },
+      { label: "May", fullLabel: "Maio" },
+      { label: "Jun", fullLabel: "Junho" },
+      { label: "Jul", fullLabel: "Julho" },
+      { label: "Aug", fullLabel: "Agosto" },
+      { label: "Sep", fullLabel: "Setembro" },
+      { label: "Oct", fullLabel: "Outubro" },
+      { label: "Nov", fullLabel: "Novembro" },
+      { label: "Dec", fullLabel: "Dezembro" },
+    ];
+
+    
+
+    const results: {
+      label: string;
+      fullLabel: string;
+      value: number;
+      brands: { name: string; value: number }[];
+    }[] = [];
+
+    for (let m = 0; m < 12; m++) {
+      const from = new Date(Date.UTC(year, m, 1, 0, 0, 0));
+      const to = new Date(Date.UTC(year, m + 1, 0, 23, 59, 59, 999));
+
+      
+
+      const orders = await prisma.order.findMany({
+        where: {
+          storeId,
+          createdAt: { gte: from, lte: to },
+          status: { in: ["approved", "Approved"] },
+        },
+        include: {
+          items: {
+            include: {
+              storeProduct: true,
+              storeProductCustom: true,
+            },
+          },
+        },
+      });
+
+      let monthTotal = 0;
+      const companyMap: Record<string, number> = {};
+
+      for (const order of orders) {
+        monthTotal += Number(order.total || 0);
+
+        for (const item of order.items || []) {
+          const company =
+            (item.storeProduct && (item.storeProduct as any).company) ||
+            (item.storeProductCustom && (item.storeProductCustom as any).company) ||
+            "unknown";
+
+          const itemValue = Number(item.price || 0) * Number(item.quantity || 0);
+          companyMap[company] = (companyMap[company] || 0) + itemValue;
+        }
+      }
+
+      const brands = Object.keys(companyMap).map((name) => ({
+        name,
+        value: companyMap[name] / 100,
+      }));
+
+      results.push({
+        label: months[m].label,
+        fullLabel: months[m].fullLabel,
+        value: monthTotal / 100,
+        brands,
+      });
+    }
+
+    return results;
+}
 }

@@ -13,8 +13,7 @@ export async function sendWhatsappMessage(to: string, message: string) {
     ? cleanedPhone
     : `55${cleanedPhone}`;
 
-  console.log("📱 Tentando enviar WhatsApp para:", formattedPhone);
-  console.log("📝 Mensagem:", message);
+  
 
   try {
     const response = await axios.post(
@@ -36,7 +35,7 @@ export async function sendWhatsappMessage(to: string, message: string) {
       }
     );
 
-    console.log("✅ WhatsApp enviado com sucesso!", response.data);
+    
     return response.data;
   } catch (error: any) {
     console.error(

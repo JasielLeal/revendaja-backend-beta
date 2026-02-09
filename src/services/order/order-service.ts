@@ -236,15 +236,12 @@ export class OrderService {
 
     // Enviar notificações push apenas para o dono da loja
     try {
-      console.log("🔔 Enviando notificações push para o dono da loja...");
       const pushTokenRepository = new PushTokenRepository();
       const tokensByProvider =
         await pushTokenRepository.findUserTokensByStoreIdGroupedByProvider(
           store.userId,
           store.id
         );
-
-      console.log("Tokens por provedor:", tokensByProvider);
 
       const formattedTotal = (Number(createdOrder.total) / 100).toLocaleString(
         "pt-BR",
@@ -265,7 +262,7 @@ export class OrderService {
         },
       });
 
-      console.log("✅ Notificações push enviadas para o dono da loja");
+      
     } catch (error) {
       console.error("❌ Erro ao enviar notificações push:", error);
     }
@@ -336,7 +333,7 @@ export class OrderService {
         status
       );
 
-    console.log(orders)
+    
 
     const allItems = orders.flatMap((order) => order.items);
 
@@ -550,5 +547,42 @@ export class OrderService {
         return dateB - dateA;
       })
       .slice(0, 3);
+  }
+
+  async updateOrderDate(orderId: string, userId: string, newDate: Date) {
+    // Verificar se a loja pertence ao usuário
+    const store = await this.storeRepository.findyStoreByUserId(userId);
+
+    if (!store) {
+      throw new Error("Store not found");
+    }
+
+    // Verificar se a order existe e pertence à loja do usuário
+    const order = await this.orderRepository.findById(orderId);
+
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    if (order.storeId !== store.id) {
+      throw new Error("Order does not belong to your store");
+    }
+
+    // Atualizar data da order
+    const updatedOrder = await this.orderRepository.updateDate(orderId, newDate);
+
+    return updatedOrder;
+  }
+
+  async getMonthlySummary(userId: string, year: number) {
+    const store = await this.storeRepository.findyStoreByUserId(userId);
+
+    if (!store) {
+      throw new Error("Store not found");
+    }
+
+    const summary = await this.orderRepository.monthlySummary(store.id, year);
+
+    return summary;
   }
 }

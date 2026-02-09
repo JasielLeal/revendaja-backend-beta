@@ -682,4 +682,130 @@ export async function OrderController(app: FastifyTypeInstance) {
       }
     }
   );
+
+  app.patch(
+    "/orders/:id/date",
+    {
+      schema: {
+        tags: ["Orders"],
+        description: "Update order date",
+        params: z.object({
+          id: z.string().uuid(),
+        }),
+        body: z.object({
+          newDate: z.string(), // ISO string
+        }),
+        response: {
+          200: z.object({
+            message: z.string(),
+            order: z.object({
+              id: z.string(),
+              createdAt: z.string(),
+            }),
+          }),
+          400: z.object({
+            error: z.string(),
+          }),
+          404: z.object({
+            error: z.string(),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        const { id } = req.params;
+        const { newDate } = req.body;
+        const userId = req.user.id;
+        const updatedOrder = await orderService.updateOrderDate(
+          id,
+          userId,
+          new Date(newDate)
+        );
+        return reply.status(200).send({
+          message: "Data da order atualizada com sucesso",
+          order: {
+            id: updatedOrder.id,
+            createdAt: updatedOrder.createdAt.toISOString(),
+          },
+        });
+      } catch (error: any) {
+        console.log("❌ ERRO ao alterar data da order:", error);
+        if (error.message.includes("not found")) {
+          return reply.status(404).send({
+            error: "Order não encontrada",
+          });
+        }
+        if (error.message.includes("not belong")) {
+          return reply.status(400).send({
+            error: "Order não pertence à sua loja",
+          });
+        }
+
+        return reply.status(500).send({
+          error: "Erro interno: " + error.message,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/dashboard/monthly-summary",
+    {
+      schema: {
+        tags: ["Orders"],
+        description: "Get monthly sales summary for the current year",
+        querystring: z
+          .object({
+            year: z.string().optional(), // ano opcional, se não for passado, usa o ano atual
+          })
+          .partial(),
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: z.array(
+            z.object({
+              label: z.string(),
+              fullLabel: z.string(),
+              value: z.number(),
+              brands: z.array(
+                z.object({
+                  name: z.string(),
+                  value: z.number(),
+                })
+              ),
+            })
+          ),
+          401: z.object({
+            error: z.string().default("Unauthorized"),
+          }),
+          404: z.object({
+            error: z.string().default("Store not found"),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+      preHandler: [verifyToken],
+    },
+    async (req, reply) => {
+      try {
+        const { id } = req.user;
+
+        const { year } = req.query as { year?: string };
+        const currentYear = year ? Number(year) : new Date().getFullYear();
+        const summary = await orderService.getMonthlySummary(id, currentYear);
+        return reply.status(200).send(summary);
+      } catch (error: any) {
+        console.log("❌ ERRO ao buscar resumo mensal:", error);
+        return reply.status(500).send({
+          error: "Erro ao buscar resumo mensal: " + error.message,
+        });
+      }
+    }
+  )
 }
