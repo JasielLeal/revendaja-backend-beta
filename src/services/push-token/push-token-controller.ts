@@ -49,6 +49,8 @@ export async function PushTokenController(app: FastifyTypeInstance) {
         const userId = req.user.id;
         const { token, provider, deviceId, deviceName } = req.body;
 
+        console.log("Registrando token de push:", { token, provider, deviceId, deviceName });
+
         const pushToken = await repository.upsert({
           token,
           provider,
@@ -56,6 +58,7 @@ export async function PushTokenController(app: FastifyTypeInstance) {
           deviceId,
           deviceName,
         });
+        
 
         return reply.status(201).send({
           message: "Token registrado com sucesso",
