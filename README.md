@@ -1,147 +1,105 @@
-# GuardianDocs Backend
+<div align="center">
 
-**API REST da plataforma SaaS de Gestão Documental para Empresas de Transporte**
+# Revendaja Backend
+
+**API REST para gestão de usuários, lojas, catálogo, pedidos, pagamentos e integrações da plataforma Revendaja**
 
 [![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=flat-square&logo=node.js)](https://nodejs.org)
 [![Fastify](https://img.shields.io/badge/Fastify-5.x-000000?style=flat-square&logo=fastify)](https://fastify.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
 [![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?style=flat-square&logo=prisma)](https://www.prisma.io)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql)](https://www.postgresql.org)
-[![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis)](https://redis.io)
-[![AWS](https://img.shields.io/badge/AWS-S3%20%7C%20Textract-FF9900?style=flat-square&logo=amazon-aws)](https://aws.amazon.com)
 [![Stripe](https://img.shields.io/badge/Stripe-Billing-635BFF?style=flat-square&logo=stripe)](https://stripe.com)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](../LICENSE)
+[![AWS](https://img.shields.io/badge/AWS-S3-FF9900?style=flat-square&logo=amazon-aws)](https://aws.amazon.com)
+[![License](https://img.shields.io/badge/License-ISC-green?style=flat-square)](LICENSE)
+
+</div>
 
 ---
 
 ## O que é
 
-O **GuardianDocs Backend** é a API principal responsável por autenticação, controle multi-tenant, processamento de documentos, OCR automatizado, gerenciamento de planos, billing e regras de negócio da plataforma.
+**Revendaja Backend** é a API principal da plataforma Revendaja. Ela centraliza autenticação, gerenciamento de usuários, lojas, produtos, catálogo, pedidos, pagamentos e integrações externas como Stripe, S3, notificações push e WhatsApp.
 
-Ele centraliza toda a operação documental de empresas de transporte, garantindo segurança, rastreabilidade e automação para documentos de funcionários, veículos, boletos e registros corporativos.
-
----
-
-## Responsabilidades do backend
-
-- **API REST** para frontend e integrações futuras
-- **Autenticação JWT** com refresh token e rotação automática
-- **Multi-tenant por empresa** com isolamento lógico de dados
-- **Upload e armazenamento** de arquivos em nuvem
-- **OCR automatizado** com AWS Textract
-- **Fila assíncrona** para processamento em background com BullMQ + Redis
-- **Classificação automática** de documentos com base no texto extraído
-- **Gestão de vencimentos** com alertas automáticos por e-mail
-- **Billing e assinaturas** com Stripe
-- **Aplicação de limites por plano** em recursos da plataforma
-- **Controle de acesso por papéis** (`OWNER`, `ADMIN`, `EMPLOYEE`)
+O backend foi construído para sustentar uma operação de vendas com catálogo, estoque, personalização de produtos por loja, fluxo de checkout, plano por assinatura e comunicação em tempo real com clientes e lojistas.
 
 ---
 
-## Stack principal
+## Monolito backend
 
-| Camada | Tecnologia |
-|---|---|
-| Runtime | Node.js 20+ |
-| Framework HTTP | Fastify |
-| Linguagem | TypeScript |
-| ORM | Prisma |
-| Banco de dados | PostgreSQL 16 |
-| Cache / filas | Redis 7 |
-| Jobs assíncronos | BullMQ |
-| Armazenamento | AWS S3 |
-| OCR | AWS Textract |
-| Billing | Stripe |
-| Autenticação | JWT + Refresh Token |
+Este repositório representa o backend da aplicação e organiza a regra de negócio em módulos dentro de `src/services`, além de configuração, entidades, middlewares, integrações e camada de persistência com Prisma.
+
+```bash
+revendaja-backend-beta/
+├── prisma/                 # Schema, migrations e arquivos de carga inicial
+├── src/
+│   ├── config/             # Planos e permissões
+│   ├── entities/           # Tipagens e entidades da aplicação
+│   ├── lib/                # Utilitários e inicialização de recursos compartilhados
+│   ├── mail/               # Recursos relacionados a e-mail
+│   ├── middlewares/        # Middlewares como autenticação por token
+│   ├── services/           # Módulos da regra de negócio e controllers
+│   ├── types/              # Tipos auxiliares
+│   ├── whatsapp/           # Integrações específicas de WhatsApp
+│   └── server.ts           # Bootstrap do servidor Fastify
+├── docker-compose.yml      # PostgreSQL local para desenvolvimento
+├── package.json
+├── prisma.config.ts
+└── README.md
+```
 
 ---
 
 ## Funcionalidades principais
 
-- **Autenticação segura** — login com access token curto e refresh token httpOnly
-- **Controle de acesso por perfil** — permissões segmentadas por papel do usuário
-- **Gestão de documentos** — upload, leitura, classificação e vencimento
-- **OCR automatizado** — extração de texto após upload de documentos
-- **Processamento assíncrono** — OCR executado em background via fila
-- **Cadastro automático por CRLV** — criação de veículo com base no documento processado
-- **Alertas de vencimento** — verificação diária de documentos críticos por empresa
-- **Gestão de boletos** — módulo separado dos documentos corporativos
-- **Billing via Stripe** — checkout, portal do cliente e sincronização por webhook
-- **Limites por assinatura** — regras aplicadas conforme plano da empresa
+- **Autenticação de usuários** — cadastro, login, verificação de token, recuperação e redefinição de senha
+- **Verificação por e-mail e OTP** — confirmação de conta e fluxo de recuperação com código
+- **Gestão de lojas** — criação, edição e operação de lojas com subdomínio e identidade visual
+- **Catálogo de produtos** — base de catálogo com preço normal, sugerido, marca, categoria e código de barras
+- **Produtos por loja** — controle de preço, quantidade, validade, status e vínculo com catálogo
+- **Produtos customizados** — suporte a itens próprios da loja fora do catálogo base
+- **Pedidos** — criação e acompanhamento de pedidos com itens, pagamento e entrega
+- **Área web pública da loja** — rotas dedicadas para consumo via `/api/web`
+- **Pagamentos via Stripe** — checkout, portal do cliente e consulta de assinaturas
+- **Webhooks** — recebimento de eventos externos com tratamento específico
+- **Upload de arquivos** — suporte a multipart com limite configurado no Fastify
+- **Notificações push** — registro e gerenciamento de tokens por dispositivo
+- **Integração com WhatsApp** — recebimento de eventos e automações relacionadas
+- **Socket.IO** — suporte a comunicação em tempo real
+- **Documentação OpenAPI** — Swagger disponível na rota `/docs`
 
 ---
 
-## Estrutura sugerida do backend
+## Planos
 
-```bash
-guardiandocs-backend/
-├── prisma/                 # Schema, migrations e seeds
-├── src/
-│   ├── config/             # Configurações globais e planos
-│   ├── modules/            # Domínios da aplicação
-│   ├── routes/             # Rotas HTTP
-│   ├── jobs/               # Processadores assíncronos
-│   ├── queues/             # Configuração de filas
-│   ├── services/           # Regras de negócio e integrações
-│   ├── utils/              # Helpers utilitários
-│   └── server.ts           # Bootstrap da aplicação
-├── docker-compose.yml      # Infra local (Postgres + Redis)
-├── package.json
-└── README.md
-```
+Os limites e recursos dos planos são definidos em `src/config/plans.ts`.
 
-> A estrutura real pode variar conforme a implementação atual do projeto.
-
----
-
-## Planos e limites
-
-Os limites da aplicação são validados no backend e podem ser centralizados em arquivos como `src/config/plans.ts`.
-
-| Recurso | Free | Starter | Pro |
+| Recurso | Free | Starter | Exclusive |
 |---|---|---|---|
-| Funcionários | 5 | 30 | Ilimitado |
-| Veículos | 3 | 15 | Ilimitado |
-| Usuários | 2 | 10 | Ilimitado |
-| Armazenamento | 1 GB | 20 GB | 100 GB |
-| OCR de documentos | ✓ | ✓ | ✓ |
-| Notificações de vencimento | ✓ | ✓ | ✓ |
-| Suporte por e-mail | — | ✓ | ✓ |
-| Preço mensal | Grátis | R$ 79/mês | R$ 199/mês |
-| Preço anual | Grátis | R$ 59/mês | R$ 149/mês |
-
----
-
-## Fluxo resumido de processamento documental
-
-1. Usuário envia um documento
-2. Backend valida permissões, plano e metadados
-3. Arquivo é salvo no storage
-4. Um job é enfileirado para OCR
-5. AWS Textract extrai o conteúdo
-6. O sistema classifica o documento automaticamente
-7. Datas e campos relevantes são persistidos
-8. Regras de vencimento passam a monitorar o documento
+| Pedidos mensais | 10 | 40 | Ilimitado |
+| Produtos máximos | 15 | 200 | Ilimitado |
+| Loja online | ✓ | ✓ | ✓ |
+| Integração com WhatsApp | — | — | ✓ |
+| Exportação de relatórios | — | ✓ | ✓ |
+| Suporte prioritário | — | ✓ | ✓ |
 
 ---
 
 ## Quick Start
 
 ```bash
-cd guardiandocs-backend
+# Clone
+git clone https://github.com/JasielLeal/revendaja-backend-beta.git
+cd revendaja-backend-beta
 
-# Suba a infraestrutura local
-Docker compose up -d
+# Infra local
+docker compose up -d
 
-# Instale as dependências
-npm install
-
-# Configure variáveis de ambiente
+# Variáveis de ambiente
 cp .env.example .env
 
-# Execute migrations e seed
-npm run db:migrate
-npm run db:seed
+# Dependências
+npm install
 
 # Rode em desenvolvimento
 npm run dev
@@ -153,62 +111,110 @@ API disponível em:
 http://localhost:3333
 ```
 
----
+Documentação Swagger:
 
-## Variáveis de ambiente esperadas
-
-Exemplos comuns de configuração:
-
-- `DATABASE_URL`
-- `REDIS_URL`
-- `JWT_SECRET`
-- `JWT_REFRESH_SECRET`
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-- `AWS_REGION`
-- `AWS_S3_BUCKET`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `FRONTEND_URL`
-
-> Consulte o arquivo `.env.example` para a lista real e atualizada das variáveis obrigatórias.
+```bash
+http://localhost:3333/docs
+```
 
 ---
 
-## Segurança e regras de acesso
+## Estrutura de domínio
 
-O backend aplica controle de acesso com base em papéis:
+Os módulos principais registrados no servidor incluem:
 
-- `OWNER` — controle total da empresa e billing
-- `ADMIN` — gestão operacional e administrativa
-- `EMPLOYEE` — acesso restrito conforme permissões do domínio
+| Módulo | Descrição |
+|---|---|
+| `user` | Cadastro, login, verificação de e-mail, OTP, perfil e autenticação |
+| `store` | Gestão da loja e dados principais do estabelecimento |
+| `product` | Operações relacionadas a produtos |
+| `catalog` | Catálogo base compartilhado |
+| `store-product` | Produtos da loja vinculados ao catálogo |
+| `store-product-custom` | Produtos próprios/customizados por loja |
+| `order` | Criação e gestão de pedidos |
+| `banner` | Banners e identidade visual |
+| `webhook` | Eventos externos, especialmente pagamentos |
+| `payment` | Checkout, portal e assinaturas Stripe |
+| `store-web` | Endpoints públicos da loja para web |
+| `push-token` | Registro de dispositivos para push notification |
+| `whatsapp` | Integração e webhooks do WhatsApp |
 
-Além disso, o sistema opera em modelo **multi-tenant**, garantindo segregação lógica por empresa.
+---
+
+## Modelos principais do banco
+
+Com base no `prisma/schema.prisma`, o backend possui entidades centrais como:
+
+- **User** — usuários, plano, role, verificação de e-mail e vínculo Stripe
+- **Store** — loja, subdomínio, identidade visual, configurações e relacionamento com usuário
+- **Catalog** — base de produtos do catálogo
+- **StoreProduct** — produto da loja vinculado ao catálogo
+- **StoreProductCustom** — produto exclusivo/customizado da loja
+- **Order** — pedido realizado na loja
+- **OrderItem** — itens do pedido
+- **Banner** — banners visuais
+- **PushToken** — tokens de notificação por usuário e loja
+- **StoreSettings** — configurações como chave Pix
+
+---
+
+## Variáveis de ambiente
+
+O arquivo `.env.example` inclui as seguintes variáveis base:
+
+| Categoria | Variáveis |
+|---|---|
+| Banco de dados | `DATABASE_URL` |
+| JWT | `JWT_SECRET` |
+| E-mail | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS` |
+| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_BASIC` |
+| Servidor | `PORT` |
+
+---
+
+## Segurança e acesso
+
+O backend utiliza autenticação baseada em token JWT e middleware de proteção de rotas.
+
+Os papéis definidos em `src/config/permissions.ts` são:
+
+- `Admin`
+- `Member`
+
+Entre as permissões previstas estão:
+
+- gerenciamento de produtos
+- criação e visualização de pedidos
+- edição da loja
+- visualização de dashboard e métricas
+- gerenciamento de usuários e planos
 
 ---
 
 ## Integrações
 
+- **PostgreSQL** — persistência principal com Prisma
+- **Stripe** — checkout, portal do cliente e assinaturas
 - **AWS S3** — armazenamento de arquivos
-- **AWS Textract** — OCR e extração textual
-- **Stripe** — assinaturas, checkout e portal do cliente
-- **Redis** — cache e filas
-- **PostgreSQL** — persistência principal de dados
+- **SMTP / e-mail** — envio de mensagens transacionais
+- **WhatsApp** — recebimento de eventos e integrações específicas
+- **Socket.IO** — eventos em tempo real
 
 ---
 
-## Roadmap técnico
+## Roadmap
 
-- [x] API multi-tenant com autenticação JWT
-- [x] Upload de arquivos com OCR assíncrono
-- [x] Regras de plano e billing via Stripe
-- [x] Alertas automáticos de vencimento
-- [ ] Autenticação multifator (2FA via TOTP)
-- [ ] Auditoria detalhada por ação do usuário
-- [ ] Logs estruturados e observabilidade
-- [ ] Rate limiting por tenant
-- [ ] Webhooks internos para eventos de domínio
-- [ ] Testes E2E para fluxos críticos
+- [x] API Fastify com documentação Swagger
+- [x] Autenticação com JWT
+- [x] Gestão de usuários e lojas
+- [x] Catálogo, produtos e produtos customizados
+- [x] Pedidos e fluxo de pagamento
+- [x] Integração com Stripe
+- [x] Registro de push tokens
+- [x] Integração inicial com WhatsApp
+- [ ] Evolução dos relatórios por plano
+- [ ] Expansão das automações em tempo real
+- [ ] Melhorias em observabilidade e testes
 
 ---
 
@@ -226,4 +232,4 @@ Além disso, o sistema opera em modelo **multi-tenant**, garantindo segregação
 
 ## Licença
 
-Este projeto está licenciado sob a [MIT License](../LICENSE).
+Este projeto está licenciado sob a licença definida no repositório.
