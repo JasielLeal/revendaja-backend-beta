@@ -1,4 +1,8 @@
-import { StoreProductCustomRepository } from "./store-product-custom-repository";
+import {
+  LinkedProductInput,
+  LinkedProductItem,
+  StoreProductCustomRepository,
+} from "./store-product-custom-repository";
 import { StoreProductEntity } from "@/entities/store-products";
 import { prisma } from "@/lib/prisma";
 
@@ -7,7 +11,10 @@ export class StoreProductCustomPrismaRepository
 {
   constructor() {}
 
-  async create(data: StoreProductEntity): Promise<StoreProductEntity> {
+  async create(
+    data: StoreProductEntity,
+    linkedItems?: LinkedProductInput[]
+  ): Promise<StoreProductEntity> {
     const product = await prisma.storeProductCustom.create({
       data: {
         name: data.name,
@@ -20,10 +27,51 @@ export class StoreProductCustomPrismaRepository
         company: data.company,
         category: data.category,
         cost_price: data.costPrice,
+        linkedItems:
+          linkedItems && linkedItems.length > 0
+            ? {
+                create: linkedItems.map((item) => ({
+                  storeProductId: item.storeProductId,
+                  quantity: item.quantity,
+                })),
+              }
+            : undefined,
       },
     });
 
     return new StoreProductEntity(product);
+  }
+
+  async setLinkedItems(
+    customProductId: string,
+    items: LinkedProductInput[]
+  ): Promise<void> {
+    await prisma.$transaction([
+      prisma.storeProductCustomItem.deleteMany({
+        where: { storeProductCustomId: customProductId },
+      }),
+      prisma.storeProductCustomItem.createMany({
+        data: items.map((item) => ({
+          storeProductCustomId: customProductId,
+          storeProductId: item.storeProductId,
+          quantity: item.quantity,
+        })),
+      }),
+    ]);
+  }
+
+  async getLinkedItems(customProductId: string): Promise<LinkedProductItem[]> {
+    const items = await prisma.storeProductCustomItem.findMany({
+      where: { storeProductCustomId: customProductId },
+      include: { storeProduct: true },
+    });
+
+    return items.map((item) => ({
+      id: item.id,
+      storeProductId: item.storeProductId,
+      quantity: item.quantity,
+      product: new StoreProductEntity(item.storeProduct),
+    }));
   }
 
   async findById(id: string): Promise<StoreProductEntity | null> {

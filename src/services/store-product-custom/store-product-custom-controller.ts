@@ -3,6 +3,7 @@ import { verifyToken } from "@/middlewares/verify-token";
 import { StorePrismaRepository } from "../store/store-prisma-repository";
 import { StoreProductCustomPrismaRepository } from "./store-product-custom-prisma-repository";
 import { StoreProductCustomService } from "./store-product-custom-service";
+import { StoreProductPrismaRepository } from "../store-product/store-product-prisma-repository";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "@/lib/s3";
 import { z } from "zod";
@@ -12,10 +13,12 @@ import { CheckPlanLimits } from "@/middlewares/check-plan-limits";
 export async function StoreProductCustomController(app: FastifyTypeInstance) {
   const storeRepository = new StorePrismaRepository();
   const storeProductCustomRepository = new StoreProductCustomPrismaRepository();
+  const storeProductRepository = new StoreProductPrismaRepository();
 
   const service = new StoreProductCustomService(
     storeProductCustomRepository,
-    storeRepository
+    storeRepository,
+    storeProductRepository
   );
 
   app.post(
@@ -109,9 +112,18 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
           quantity: z.number().min(0),
           costPrice: z.number().optional(),
           category: z.string().optional(),
+          linkedProducts: z
+            .array(
+              z.object({
+                storeProductId: z.string().min(1),
+                quantity: z.number().min(1),
+              })
+            )
+            .optional(),
         });
 
-        const { name, price, quantity, costPrice, category } = bodySchema.parse(bodyRaw);
+        const { name, price, quantity, costPrice, category, linkedProducts } =
+          bodySchema.parse(bodyRaw);
 
         let imgUrl: string | undefined;
 
@@ -124,7 +136,7 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
 
           await s3.send(
             new PutObjectCommand({
-              Bucket: 'revendaja',
+              Bucket: 'revendaja-develop',
               Key: key,
               Body: fileBuffer,
               ContentType: fileMimeType,
@@ -132,7 +144,7 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
             })
           );
 
-          imgUrl = `https://revendaja.s3.amazonaws.com/${key}`;
+          imgUrl = `https://revendaja-develop.s3.amazonaws.com/${key}`;
         }
 
         await service.createCustomProduct(
@@ -142,7 +154,8 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
             quantity,
             costPrice,
             imgUrl,
-            category
+            category,
+            linkedProducts,
           },
           userId,
           userPlan
@@ -157,6 +170,115 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
             return reply.status(404).send({
               message: "Store not found",
             });
+          }
+        }
+
+        console.error(error);
+
+        return reply.status(500).send({
+          message: "Internal Server Error",
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/store-products-custom/:id/linked-products",
+    {
+      preHandler: [verifyToken],
+      schema: {
+        tags: ["Store-Products-Custom"],
+        description: "Get linked products (kit items) of a custom product",
+        params: z.object({ id: z.string() }),
+        response: {
+          200: z.object({
+            linkedProducts: z.array(
+              z.object({
+                id: z.string(),
+                storeProductId: z.string(),
+                quantity: z.number(),
+                product: z.any(),
+              })
+            ),
+          }),
+          404: z.object({ message: z.string() }),
+          500: z.object({ message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const userId = request.user.id;
+        const { id } = request.params;
+
+        const linkedProducts = await service.getLinkedProducts(id, userId);
+
+        return reply.status(200).send({ linkedProducts });
+      } catch (error) {
+        if (error instanceof Error) {
+          if (
+            error.message === "Store not found" ||
+            error.message === "Custom product not found"
+          ) {
+            return reply.status(404).send({ message: error.message });
+          }
+        }
+
+        console.error(error);
+
+        return reply.status(500).send({
+          message: "Internal Server Error",
+        });
+      }
+    }
+  );
+
+  app.put(
+    "/store-products-custom/:id/linked-products",
+    {
+      preHandler: [verifyToken],
+      schema: {
+        tags: ["Store-Products-Custom"],
+        description: "Update linked products (kit items) of a custom product",
+        params: z.object({ id: z.string() }),
+        body: z.object({
+          linkedProducts: z.array(
+            z.object({
+              storeProductId: z.string().min(1),
+              quantity: z.number().min(1),
+            })
+          ),
+        }),
+        response: {
+          200: z.object({ message: z.string() }),
+          400: z.object({ message: z.string() }),
+          404: z.object({ message: z.string() }),
+          500: z.object({ message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const userId = request.user.id;
+        const { id } = request.params;
+        const { linkedProducts } = request.body;
+
+        await service.updateLinkedProducts(id, userId, linkedProducts);
+
+        return reply.status(200).send({
+          message: "Linked products updated successfully",
+        });
+      } catch (error) {
+        if (error instanceof Error) {
+          if (
+            error.message === "Store not found" ||
+            error.message === "Custom product not found"
+          ) {
+            return reply.status(404).send({ message: error.message });
+          }
+
+          if (error.message.startsWith("Linked product")) {
+            return reply.status(400).send({ message: error.message });
           }
         }
 

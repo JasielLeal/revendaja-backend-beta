@@ -1,5 +1,15 @@
 import { StoreProductEntity } from "@/entities/store-products";
 
+export interface LinkedProductInput {
+  storeProductId: string;
+  quantity: number;
+}
+
+export interface LinkedProductItem extends LinkedProductInput {
+  id: string;
+  product: StoreProductEntity;
+}
+
 export interface StoreProductCustomRepository {
   findById(id: string): Promise<StoreProductEntity | null>;
   updatedStock(productId: string, newQuantity: number): Promise<void>;
@@ -15,7 +25,10 @@ export interface StoreProductCustomRepository {
     pagination: { page: number; pageSize: number; total: number, totalPages: number };
     usedFuzzy: boolean;
   }>;
-  create(data: StoreProductEntity): Promise<StoreProductEntity>;
+  create(
+    data: StoreProductEntity,
+    linkedItems?: LinkedProductInput[]
+  ): Promise<StoreProductEntity>;
   updatePrice(productId: string, newPrice: number): Promise<void>;
   updateStatus(productId: string, status: string): Promise<void>;
   updateValidityDate(productId: string, newValidityDate: Date): Promise<void>;
@@ -27,4 +40,10 @@ export interface StoreProductCustomRepository {
   getUniqueCategories(storeId: string): Promise<string[]>
   countActiveProducts(storeId: string): Promise<number>
   countLowStock(storeId: string, limit: number): Promise<number>;
+
+  setLinkedItems(
+    customProductId: string,
+    items: LinkedProductInput[]
+  ): Promise<void>;
+  getLinkedItems(customProductId: string): Promise<LinkedProductItem[]>;
 }

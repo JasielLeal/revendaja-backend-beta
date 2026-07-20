@@ -68,10 +68,10 @@ model Store {
 }
 
 model StoreProduct {
-  id            String      @id @default(uuid())
+  id            String                    @id @default(uuid())
   name          String
   price         Float
-  quantity      Int         @default(0)
+  quantity      Int                       @default(0)
   catalogPrice  Float?
   catalogId     Int?
   barcode       String
@@ -79,44 +79,60 @@ model StoreProduct {
   imgUrl        String?
   cost_price    Float?
   validity_date DateTime?
-  status        String?     @default("active")
+  status        String?                   @default("active")
   brand         String
   company       String
   storeId       String
-  type          String      @default("catalog")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  isOnSale      Boolean?    @default(false)
-  campoTest     Boolean?    @default(false)
+  type          String                    @default("catalog")
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  isOnSale      Boolean?                  @default(false)
+  campoTest     Boolean?                  @default(false)
   orderItems    OrderItem[]
-  catalog       Catalog?    @relation(fields: [catalogId], references: [id])
-  store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customLinks   StoreProductCustomItem[]
+  catalog       Catalog?                  @relation(fields: [catalogId], references: [id])
+  store         Store                     @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@unique([storeId, catalogId])
   @@map("store_products")
 }
 
 model StoreProductCustom {
-  id            String      @id @default(uuid())
+  id            String                    @id @default(uuid())
   name          String
   price         Float
-  quantity      Int         @default(0)
+  quantity      Int                       @default(0)
   barcode       String
   category      String?
   imgUrl        String?
   cost_price    Float?
   validity_date DateTime?
-  status        String?     @default("active")
+  status        String?                   @default("active")
   brand         String
   company       String
   storeId       String
-  type          String      @default("custom")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  type          String                    @default("custom")
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
   orderItems    OrderItem[]
-  store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  linkedItems   StoreProductCustomItem[]
+  store         Store                     @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@map("store_product_customs")
+}
+
+model StoreProductCustomItem {
+  id                   String   @id @default(uuid())
+  storeProductCustomId String
+  storeProductId       String
+  quantity             Int      @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  storeProductCustom   StoreProductCustom @relation(fields: [storeProductCustomId], references: [id], onDelete: Cascade)
+  storeProduct         StoreProduct       @relation(fields: [storeProductId], references: [id], onDelete: Cascade)
+
+  @@unique([storeProductCustomId, storeProductId])
+  @@map("store_product_custom_items")
 }
 
 model Order {

@@ -109,9 +109,67 @@ export class OrderService {
           currentStock: newQuantity,
         });
       }
+
+      // Se for um kit (produto custom), dá baixa também nos produtos vinculados
+      if (isCustom) {
+        await this.consumeLinkedItemsStock(
+          productId,
+          item.quantity,
+          store.id
+        );
+      }
     }
 
     return createdOrder;
+  }
+
+  // Dá baixa no estoque dos produtos vinculados a um kit e emite alerta de estoque baixo
+  private async consumeLinkedItemsStock(
+    customProductId: string,
+    orderedQuantity: number,
+    storeId: string
+  ): Promise<void> {
+    const linkedItems = await this.storeProductCustomRepository.getLinkedItems(
+      customProductId
+    );
+
+    for (const link of linkedItems) {
+      const consumed = link.quantity * orderedQuantity;
+      const newLinkedQuantity = link.product.quantity - consumed;
+
+      await this.storeProductRepository.updatedStock(
+        link.storeProductId,
+        newLinkedQuantity
+      );
+
+      if (newLinkedQuantity <= 5) {
+        emitLowStock(storeId, {
+          productId: link.storeProductId,
+          productName: link.product.name,
+          currentStock: newLinkedQuantity,
+        });
+      }
+    }
+  }
+
+  // Devolve o estoque dos produtos vinculados a um kit
+  private async restoreLinkedItemsStock(
+    customProductId: string,
+    orderedQuantity: number
+  ): Promise<void> {
+    const linkedItems = await this.storeProductCustomRepository.getLinkedItems(
+      customProductId
+    );
+
+    for (const link of linkedItems) {
+      const restored = link.quantity * orderedQuantity;
+      const newLinkedQuantity = link.product.quantity + restored;
+
+      await this.storeProductRepository.updatedStock(
+        link.storeProductId,
+        newLinkedQuantity
+      );
+    }
   }
 
   // Verifica se o usuário atingiu o limite de vendas mensais do plano
@@ -164,6 +222,23 @@ export class OrderService {
         throw new Error(
           `Insufficient stock for ${product.name}. Available: ${product.quantity}, Requested: ${item.quantity}`
         );
+      }
+
+      // Se for um kit (produto custom), valida o estoque dos produtos vinculados também
+      if (isCustom) {
+        const linkedItems = await this.storeProductCustomRepository.getLinkedItems(
+          productId
+        );
+
+        for (const link of linkedItems) {
+          const requiredQuantity = link.quantity * item.quantity;
+
+          if (link.product.quantity < requiredQuantity) {
+            throw new Error(
+              `Insufficient stock for ${link.product.name} (item of kit ${product.name}). Available: ${link.product.quantity}, Requested: ${requiredQuantity}`
+            );
+          }
+        }
       }
 
       const itemTotal = product.price * item.quantity;
@@ -232,6 +307,15 @@ export class OrderService {
 
       const newQuantity = product.quantity - item.quantity;
       await repository.updatedStock(productId, newQuantity);
+
+      // Se for um kit (produto custom), dá baixa também nos produtos vinculados
+      if (isCustom) {
+        await this.consumeLinkedItemsStock(
+          productId,
+          item.quantity,
+          store.id
+        );
+      }
     }
 
     // Enviar notificações push apenas para o dono da loja
@@ -520,6 +604,11 @@ export class OrderService {
       // Devolve a quantidade ao estoque
       const newQuantity = product.quantity + item.quantity;
       await repository.updatedStock(productId, newQuantity);
+
+      // Se for um kit (produto custom), devolve o estoque dos produtos vinculados também
+      if (isCustom) {
+        await this.restoreLinkedItemsStock(productId, item.quantity);
+      }
     }
 
     // Deletar a order (vai deletar os itens em cascata)

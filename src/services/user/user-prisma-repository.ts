@@ -13,7 +13,6 @@ export class UserPrismaRepository implements UserRepository {
         tokenAccess: data.tokenAccess,
       },
     });
-
     return;
   }
 
@@ -23,7 +22,6 @@ export class UserPrismaRepository implements UserRepository {
         email,
       },
     });
-
     return user;
   }
 
