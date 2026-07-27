@@ -310,6 +310,7 @@ export async function StoreProductController(app: FastifyTypeInstance) {
             .string()
             .default("10")
             .transform((val) => parseInt(val, 10)),
+          query: z.string().optional(),
         }),
         response: {
           200: z.union([
@@ -334,16 +335,25 @@ export async function StoreProductController(app: FastifyTypeInstance) {
                   price: z.number(),
                   quantity: z.number(),
                   brand: z.string(),
-                  imgUrl: z.string().nullable(),
+                  barcode: z.string(),
                   company: z.string(),
+                  catalogPrice: z.number().nullable(),
+                  catalogId: z.number().nullable(),
                   category: z.string(),
+                  imgUrl: z.string().nullable(),
                   status: z.enum(["active", "inactive"]),
+                  storeId: z.string(),
+                  type: z.string(),
+                  validityDate: z.string().nullable(),
+                  createdAt: z.string(),
+                  updatedAt: z.string(),
                 })
               ),
               pagination: z.object({
                 page: z.number(),
                 pageSize: z.number(),
                 total: z.number(),
+                totalPages: z.number(),
               }),
             }),
           ]),
@@ -360,14 +370,15 @@ export async function StoreProductController(app: FastifyTypeInstance) {
     async (req, reply) => {
       try {
         const { barcode } = req.params;
-        const { page, pageSize } = req.query;
+        const { page, pageSize, query } = req.query;
         const { id } = req.user;
 
         const product = await storeProductService.findByBarcode(
           barcode,
           id,
           page,
-          pageSize
+          pageSize,
+          query
         );
 
         if (!product) {
@@ -392,15 +403,26 @@ export async function StoreProductController(app: FastifyTypeInstance) {
               price: p.price ?? 0,
               quantity: p.quantity ?? 0,
               brand: p.brand ?? "",
-              imgUrl: p.imgUrl ?? null,
+              barcode: p.barcode ?? "",
               company: p.company ?? "",
+              catalogPrice: p.catalogPrice ?? null,
+              catalogId: p.catalogId ?? null,
               category: p.category ?? "",
+              imgUrl: p.imgUrl ?? null,
               status: (p.status ?? "active") as "active" | "inactive",
+              storeId: p.storeId ?? "",
+              type: p.type ?? "custom",
+              validityDate: p.validity_date
+                ? new Date(p.validity_date).toISOString()
+                : null,
+              createdAt: new Date(p.createdAt ?? Date.now()).toISOString(),
+              updatedAt: new Date(p.updatedAt ?? Date.now()).toISOString(),
             })),
             pagination: {
               page: customList.page,
               pageSize: customList.pageSize,
               total: customList.total,
+              totalPages: customList.totalPages,
             },
           });
         }

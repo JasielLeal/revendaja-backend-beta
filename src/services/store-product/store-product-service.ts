@@ -248,7 +248,8 @@ export class StoreProductService {
     barcode: string,
     userId: string,
     page?: number,
-    pageSize?: number
+    pageSize?: number,
+    query?: string
   ): Promise<StoreProductEntity | null> {
     const store = await this.storeRepository.findyStoreByUserId(userId);
 
@@ -261,27 +262,16 @@ export class StoreProductService {
       const products = await this.storeProductCustomRepository.findAllByStoreId(
         store.id,
         page,
-        pageSize
+        pageSize,
+        query
       );
 
-      // Retorna apenas os campos específicos com paginação
-      const formattedProducts = products.products.map((product: any) => ({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        quantity: product.quantity,
-        brand: product.brand,
-        imgUrl: product.imgUrl,
-        company: product.company,
-        category: product.category,
-        status: product.status,
-      }));
-
       return {
-        products: formattedProducts,
+        products: products.products,
         total: products.pagination.total,
         page: products.pagination.page,
         pageSize: products.pagination.pageSize,
+        totalPages: products.pagination.totalPages,
       } as unknown as StoreProductEntity;
     }
 

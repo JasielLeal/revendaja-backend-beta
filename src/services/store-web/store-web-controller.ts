@@ -312,6 +312,113 @@ export async function StoreWebController(app: FastifyTypeInstance) {
     }
   );
 
+  // Nova rota: Listagem de produtos customizados com paginação
+  app.get(
+    "/store/:subdomain/products/custom-list",
+    {
+      schema: {
+        tags: ["Store Web"],
+        description: "Complete custom product listing with pagination",
+        params: z.object({
+          subdomain: z.string().min(1),
+        }),
+        querystring: z.object({
+          page: z
+            .string()
+            .default("1")
+            .transform((val) => parseInt(val, 10)),
+          pageSize: z
+            .string()
+            .default("10")
+            .transform((val) => parseInt(val, 10)),
+          search: z.string().optional(),
+          category: z.string().optional(),
+          status: z.enum(["active", "inactive"]).optional().default("active"),
+        }),
+        response: {
+          200: z.object({
+            data: z.array(
+              z.object({
+                id: z.string(),
+                name: z.string(),
+                price: z.number(),
+                quantity: z.number(),
+                brand: z.string(),
+                company: z.string(),
+                category: z.string().optional(),
+                imgUrl: z.string().optional().nullable(),
+                status: z.string(),
+                type: z.string(),
+                createdAt: z.string(),
+                updatedAt: z.string(),
+              })
+            ),
+            pagination: z.object({
+              page: z.number(),
+              pageSize: z.number(),
+              total: z.number(),
+              totalPages: z.number(),
+            }),
+          }),
+          404: z.object({
+            error: z.string().default("Store not found"),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const { subdomain } = req.params;
+        const { page, pageSize, search, category, status } = req.query;
+
+        const result = await storeWebService.getStoreCustomProductsList(
+          subdomain,
+          page,
+          pageSize,
+          search,
+          category,
+          status
+        );
+
+        // Serializar datas
+        const serializedResult = {
+          ...result,
+          data: result.data.map((product) => ({
+            id: product.id!,
+            name: product.name,
+            price: product.price,
+            quantity: product.quantity,
+            brand: product.brand,
+            company: product.company,
+            category: product.category,
+            imgUrl: product.imgUrl,
+            status: product.status || "active",
+            type: product.type || "custom",
+            createdAt: product.createdAt!.toISOString(),
+            updatedAt: product.updatedAt!.toISOString(),
+          })),
+        };
+
+        return reply.status(200).send(serializedResult);
+      } catch (error: any) {
+        console.log("❌ ERRO ao listar produtos customizados da loja:", error);
+
+        if (error.message.includes("not found")) {
+          return reply.status(404).send({
+            error: "Loja não encontrada",
+          });
+        }
+
+        return reply.status(500).send({
+          error: "Erro interno: " + error.message,
+        });
+      }
+    }
+  );
+
   // Obter detalhes de um produto específico
   app.get(
     "/store/:subdomain/products/:productId",

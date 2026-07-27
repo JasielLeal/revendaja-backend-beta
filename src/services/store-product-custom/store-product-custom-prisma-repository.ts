@@ -1,3 +1,4 @@
+import { Prisma } from "@/generated/prisma/client";
 import {
   LinkedProductInput,
   LinkedProductItem,
@@ -108,54 +109,71 @@ export class StoreProductCustomPrismaRepository
 
     console.log("Query que chega nos produtos custom:", query);
 
-    const where: any = {
-      storeId,
-      // ✅ Removido filtro de status - agora lista TODOS os produtos (ativos e inativos)
-    };
+    // ✅ Sem estoque não é mais excluído, apenas ordenado por último
+    const stockOrderSql = Prisma.sql`CASE WHEN "quantity" > 0 THEN 0 ELSE 1 END ASC`;
+
+    const conditions: Prisma.Sql[] = [Prisma.sql`"storeId" = ${storeId}`];
 
     if (query) {
-      where.OR = [{ name: { contains: query, mode: "insensitive" } }];
+      conditions.push(Prisma.sql`"name" ILIKE ${`%${query}%`}`);
     }
 
     if (category) {
-      where.category = { contains: category, mode: "insensitive" };
+      conditions.push(Prisma.sql`"category" ILIKE ${`%${category}%`}`);
     }
 
     if (status) {
-      where.status = status;
+      conditions.push(Prisma.sql`"status" = ${status}`);
     }
 
-    const products = await prisma.storeProductCustom.findMany({
-      where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    });
+    const whereSql = Prisma.join(conditions, " AND ");
 
-    const total = await prisma.storeProductCustom.count({
-      where,
-    });
+    const products = await prisma.$queryRaw<any[]>`
+      SELECT * FROM "store_product_customs"
+      WHERE ${whereSql}
+      ORDER BY ${stockOrderSql}, "createdAt" DESC
+      OFFSET ${skip} LIMIT ${take};
+    `;
+
+    const [{ count: total }] = await prisma.$queryRaw<any[]>`
+      SELECT COUNT(*)::int AS count FROM "store_product_customs" WHERE ${whereSql};
+    `;
 
     if (query && total === 0) {
       console.log("Tentando busca fuzzy para produtos custom");
 
       try {
+        const fuzzyConditions: Prisma.Sql[] = [Prisma.sql`"storeId" = ${storeId}`];
+
+        if (category) {
+          fuzzyConditions.push(Prisma.sql`"category" ILIKE ${`%${category}%`}`);
+        }
+
+        if (status) {
+          fuzzyConditions.push(Prisma.sql`"status" = ${status}`);
+        }
+
+        const fuzzyWhereSql = Prisma.join(fuzzyConditions, " AND ");
+
+        // word_similarity lida melhor com queries parciais/typo do que similarity,
+        // pois compara contra a melhor substring do nome, não a string inteira
         const fuzzyRows = await prisma.$queryRaw<any[]>`
         WITH scored AS (
-          SELECT *, similarity(lower("name"), lower(${query})) AS score
+          SELECT *, word_similarity(lower(${query}), lower("name")) AS score
           FROM "store_product_customs"
-          WHERE "storeId" = ${storeId}
+          WHERE ${fuzzyWhereSql}
         )
         SELECT * FROM scored
         WHERE score > 0.2
-        ORDER BY score DESC, "createdAt" DESC
+        ORDER BY ${stockOrderSql}, score DESC, "createdAt" DESC
         OFFSET ${skip} LIMIT ${take};
       `;
 
         const [{ count }] = await prisma.$queryRaw<any[]>`
         WITH scored AS (
-          SELECT similarity(lower("name"), lower(${query})) AS score
+          SELECT word_similarity(lower(${query}), lower("name")) AS score
           FROM "store_product_customs"
-          WHERE "storeId" = ${storeId}
+          WHERE ${fuzzyWhereSql}
         )
         SELECT COUNT(*)::int AS count FROM scored WHERE score > 0.2;
       `;
@@ -170,7 +188,9 @@ export class StoreProductCustomPrismaRepository
           },
           usedFuzzy: true,
         };
-      } catch {}
+      } catch (e) {
+        console.error("Fuzzy search (produtos custom) failed:", e);
+      }
     }
 
     return {

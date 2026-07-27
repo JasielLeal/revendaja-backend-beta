@@ -1,3 +1,4 @@
+import { Prisma } from "@/generated/prisma/client";
 import { StoreProductRepository } from "./store-product-repository";
 import { StoreProductEntity } from "@/entities/store-products";
 import { prisma } from "@/lib/prisma";
@@ -54,7 +55,8 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     pageSize: number,
     storeId: string,
     query?: string,
-    category?: string
+    category?: string,
+    inStockOnly?: boolean
   ) {
     const skip = (page - 1) * pageSize;
     const take = pageSize;
@@ -78,6 +80,10 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
       where.category = { contains: category, mode: "insensitive" };
     }
 
+    if (inStockOnly) {
+      where.quantity = { gt: 0 };
+    }
+
     // Lista de produtos paginados (busca exata/contains)
     const products = await prisma.storeProduct.findMany({
       where,
@@ -93,16 +99,19 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
     if (query && total === 0) {
       try {
         // Nota: requer extensão pg_trgm habilitada e índices GIN (ver migração)
+        // word_similarity lida melhor com queries parciais/typo do que similarity,
+        // pois compara contra a melhor substring do campo, não a string inteira
         const fuzzyRows = await prisma.$queryRaw<any[]>`
           WITH scored AS (
             SELECT *, GREATEST(
-              similarity(lower("name"), lower(${query})),
-              similarity(lower("brand"), lower(${query})),
-              similarity(lower("company"), lower(${query})),
-              similarity(lower("category"), lower(${query}))
+              word_similarity(lower(${query}), lower("name")),
+              word_similarity(lower(${query}), lower("brand")),
+              word_similarity(lower(${query}), lower("company")),
+              word_similarity(lower(${query}), lower("category"))
             ) AS score
             FROM "store_products"
             WHERE "storeId" = ${storeId}
+            ${inStockOnly ? Prisma.sql`AND "quantity" > 0` : Prisma.empty}
           )
           SELECT * FROM scored
           WHERE score > 0.2
@@ -113,13 +122,14 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
         const [{ count }] = await prisma.$queryRaw<any[]>`
           WITH scored AS (
             SELECT GREATEST(
-              similarity(lower("name"), lower(${query})),
-              similarity(lower("brand"), lower(${query})),
-              similarity(lower("company"), lower(${query})),
-              similarity(lower("category"), lower(${query}))
+              word_similarity(lower(${query}), lower("name")),
+              word_similarity(lower(${query}), lower("brand")),
+              word_similarity(lower(${query}), lower("company")),
+              word_similarity(lower(${query}), lower("category"))
             ) AS score
             FROM "store_products"
             WHERE "storeId" = ${storeId}
+            ${inStockOnly ? Prisma.sql`AND "quantity" > 0` : Prisma.empty}
           )
           SELECT COUNT(*)::int AS count FROM scored WHERE score > 0.2;
         `;
@@ -135,7 +145,7 @@ export class StoreProductPrismaRepository implements StoreProductRepository {
           usedFuzzy: true,
         };
       } catch (e) {
-        // Se a extensão não existir, apenas retorna vazio normalmente
+        console.error("Fuzzy search (store products) failed:", e);
       }
     }
 

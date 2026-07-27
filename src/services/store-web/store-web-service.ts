@@ -121,33 +121,18 @@ export class StoreWebService {
       throw new AppError("Store not found", 404);
     }
 
-    const customResult =
-      await this.storeProductCustomRepository.findAllByStoreId(
-        store.id,
-        page,
-        pageSize,
-        search,
-        category,
-        status
-      );
-
-    // Usa o método existente do repositório com adaptação
+    // Apenas produtos normais (catálogo), com estoque disponível
     const catalogResult =
       await this.storeProductRepository.findAllStoreProducts(
         page,
         pageSize,
         store.id,
         search || "",
-        category
+        category,
+        true
       );
 
-    let data = [
-      ...(customResult.products ?? []),
-      ...(catalogResult.data ?? []),
-    ];
-
-    // Filtrar por categoria e status se necessário
-    let filteredData = data;
+    let filteredData = catalogResult.data ?? [];
 
     if (status) {
       filteredData = filteredData.filter(
@@ -155,16 +140,52 @@ export class StoreWebService {
       );
     }
 
-    const total =
-      (customResult.pagination?.total ?? 0) +
-      (catalogResult.pagination?.total ?? 0);
+    const total = catalogResult.pagination?.total ?? 0;
 
     return {
       data: filteredData,
       pagination: {
         page,
         pageSize,
-        total: total,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
+  }
+
+  async getStoreCustomProductsList(
+    subdomain: string,
+    page: number,
+    pageSize: number,
+    search?: string,
+    category?: string,
+    status?: string
+  ) {
+    // Busca a loja pelo subdomínio
+    const store = await this.storeRepository.findBySubdomain(subdomain);
+
+    if (!store) {
+      throw new AppError("Store not found", 404);
+    }
+
+    // Produtos customizados: sem estoque entram no final da lista, não são excluídos
+    const customResult = await this.storeProductCustomRepository.findAllByStoreId(
+      store.id,
+      page,
+      pageSize,
+      search,
+      category,
+      status
+    );
+
+    const total = customResult.pagination?.total ?? 0;
+
+    return {
+      data: customResult.products ?? [],
+      pagination: {
+        page,
+        pageSize,
+        total,
         totalPages: Math.ceil(total / pageSize),
       },
     };

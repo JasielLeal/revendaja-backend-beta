@@ -21,7 +21,8 @@ export interface StoreProductRepository {
     pageSize: number,
     storeId: string,
     query: string,
-    category?: string
+    category?: string,
+    inStockOnly?: boolean
   );
   countStoreProducts(storeId: string, query?: string)
   updatedStock(productId: string, newQuantity: number): Promise<void>;
