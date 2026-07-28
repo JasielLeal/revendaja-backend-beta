@@ -9,6 +9,7 @@ import { s3 } from "@/lib/s3";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { CheckPlanLimits } from "@/middlewares/check-plan-limits";
+import { AppError } from "@/lib/AppError";
 
 export async function StoreProductCustomController(app: FastifyTypeInstance) {
   const storeRepository = new StorePrismaRepository();
@@ -165,6 +166,14 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
           message: "Custom product created successfully",
         });
       } catch (error) {
+        if (error instanceof AppError) {
+          // Todos os AppError lançados neste fluxo (validação de linkedProducts,
+          // detecção de ciclo/profundidade) usam status 400.
+          return reply.status(400).send({
+            message: error.message,
+          });
+        }
+
         if (error instanceof Error) {
           if (error.message === "Store not found") {
             return reply.status(404).send({
@@ -197,6 +206,7 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
                 id: z.string(),
                 storeProductId: z.string(),
                 quantity: z.number(),
+                itemType: z.enum(["catalog", "custom"]),
                 product: z.any(),
               })
             ),
@@ -269,16 +279,20 @@ export async function StoreProductCustomController(app: FastifyTypeInstance) {
           message: "Linked products updated successfully",
         });
       } catch (error) {
+        if (error instanceof AppError) {
+          // Todos os AppError lançados neste fluxo (validação de linkedProducts,
+          // detecção de ciclo/profundidade) usam status 400.
+          return reply.status(400).send({
+            message: error.message,
+          });
+        }
+
         if (error instanceof Error) {
           if (
             error.message === "Store not found" ||
             error.message === "Custom product not found"
           ) {
             return reply.status(404).send({ message: error.message });
-          }
-
-          if (error.message.startsWith("Linked product")) {
-            return reply.status(400).send({ message: error.message });
           }
         }
 

@@ -1,12 +1,15 @@
 import { StoreProductEntity } from "@/entities/store-products";
 
+export type LinkedItemType = "catalog" | "custom";
+
 export interface LinkedProductInput {
-  storeProductId: string;
+  storeProductId: string; // id genérico: pode ser um StoreProduct ou outro StoreProductCustom (kit)
   quantity: number;
 }
 
 export interface LinkedProductItem extends LinkedProductInput {
   id: string;
+  itemType: LinkedItemType;
   product: StoreProductEntity;
 }
 

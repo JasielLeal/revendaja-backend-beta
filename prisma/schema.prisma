@@ -115,23 +115,28 @@ model StoreProductCustom {
   createdAt     DateTime                  @default(now())
   updatedAt     DateTime                  @updatedAt
   orderItems    OrderItem[]
-  linkedItems   StoreProductCustomItem[]
+  linkedItems   StoreProductCustomItem[] @relation("KitItems")
+  linkedByKits  StoreProductCustomItem[] @relation("LinkedCustomProduct")
   store         Store                     @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@map("store_product_customs")
 }
 
 model StoreProductCustomItem {
-  id                   String   @id @default(uuid())
-  storeProductCustomId String
-  storeProductId       String
-  quantity             Int      @default(1)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  storeProductCustom   StoreProductCustom @relation(fields: [storeProductCustomId], references: [id], onDelete: Cascade)
-  storeProduct         StoreProduct       @relation(fields: [storeProductId], references: [id], onDelete: Cascade)
+  id                    String              @id @default(uuid())
+  storeProductCustomId  String
+  storeProductId        String?
+  linkedCustomProductId String?
+  linkedItemType        String              @default("catalog")
+  quantity              Int                 @default(1)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  storeProductCustom    StoreProductCustom  @relation("KitItems", fields: [storeProductCustomId], references: [id], onDelete: Cascade)
+  storeProduct          StoreProduct?       @relation(fields: [storeProductId], references: [id], onDelete: Cascade)
+  linkedCustomProduct   StoreProductCustom? @relation("LinkedCustomProduct", fields: [linkedCustomProductId], references: [id], onDelete: Cascade)
 
-  @@unique([storeProductCustomId, storeProductId])
+  @@unique([storeProductCustomId, storeProductId], map: "store_product_custom_items_kit_catalog_key")
+  @@unique([storeProductCustomId, linkedCustomProductId], map: "store_product_custom_items_kit_custom_key")
   @@map("store_product_custom_items")
 }
 

@@ -30,6 +30,15 @@ export interface CreateOrderDTO {
   deliveryNeighborhood?: string;
 }
 
+const MAX_KIT_DEPTH = 20;
+
+interface KitStockImpact {
+  // storeProductId (catálogo real) -> quantidade total a consumir/restaurar
+  leafConsumption: Map<string, number>;
+  // storeProductCustomId de kit intermediário (profundidade >= 1) -> quantidade "virtual"
+  intermediateKits: Map<string, number>;
+}
+
 export class OrderService {
   constructor(
     private orderRepository: OrderRepository,
@@ -82,7 +91,24 @@ export class OrderService {
       orderEntity
     );
 
-    // 4. Atualiza o estoque de cada produto
+    // 4. Atualiza o estoque de cada produto (e, para kits, dos itens vinculados em cascata)
+    await this.applyStockDeduction(preparedItems, store.id);
+
+    return createdOrder;
+  }
+
+  // Aplica a baixa de estoque de cada item de um pedido já criado. Se o item for um kit
+  // (produto custom), também dá baixa em cascata nos produtos vinculados (recursivamente,
+  // incluindo kits aninhados). Compartilhado por createOrder() e onlineOrderCreate().
+  private async applyStockDeduction(
+    preparedItems: Array<{
+      storeProductId?: string;
+      storeProductCustomId?: string;
+      productType?: string;
+      quantity: number;
+    }>,
+    storeId: string
+  ): Promise<void> {
     for (const item of preparedItems) {
       const isCustom = item.productType === "custom";
       const productId = isCustom
@@ -103,7 +129,7 @@ export class OrderService {
 
       // Emitir evento de estoque baixo se necessário
       if (newQuantity <= 5) {
-        emitLowStock(store.id, {
+        emitLowStock(storeId, {
           productId: productId,
           productName: product.name,
           currentStock: newQuantity,
@@ -112,62 +138,142 @@ export class OrderService {
 
       // Se for um kit (produto custom), dá baixa também nos produtos vinculados
       if (isCustom) {
-        await this.consumeLinkedItemsStock(
-          productId,
-          item.quantity,
-          store.id
-        );
+        await this.consumeLinkedItemsStock(productId, item.quantity, storeId);
       }
     }
-
-    return createdOrder;
   }
 
-  // Dá baixa no estoque dos produtos vinculados a um kit e emite alerta de estoque baixo
+  // Resolve recursivamente o impacto de estoque de um kit: desce por todos os
+  // linkedItems, multiplicando a quantidade a cada nível, até chegar nos produtos-folha
+  // reais (StoreProduct). Kits intermediários atravessados no caminho também têm sua
+  // própria quantity "virtual" contabilizada (mesma regra hoje aplicada ao kit de topo,
+  // generalizada para N níveis de aninhamento).
+  //
+  // Decisão de design: a dedução cascateia até os produtos-folha reais (em vez de parar
+  // no primeiro nível e só decrementar a quantity do kit filho), pois o estoque físico
+  // real só existe nos StoreProduct — parar antes deixaria o estoque real nunca sendo
+  // baixado quando um kit é vendido dentro de outro kit.
+  private async resolveKitStockImpact(
+    customProductId: string,
+    orderedQuantity: number
+  ): Promise<KitStockImpact> {
+    const leafConsumption = new Map<string, number>();
+    const intermediateKits = new Map<string, number>();
+    const visited = new Set<string>(); // proteção defensiva contra ciclo residual
+
+    const walk = async (
+      kitId: string,
+      multiplier: number,
+      depth: number
+    ): Promise<void> => {
+      if (depth > MAX_KIT_DEPTH) {
+        throw new Error(
+          `Kit nesting too deep while resolving stock for ${kitId}`
+        );
+      }
+      if (visited.has(kitId)) return;
+      visited.add(kitId);
+
+      const links = await this.storeProductCustomRepository.getLinkedItems(
+        kitId
+      );
+
+      for (const link of links) {
+        const requiredQty = link.quantity * multiplier;
+
+        if (link.itemType === "custom") {
+          intermediateKits.set(
+            link.storeProductId,
+            (intermediateKits.get(link.storeProductId) || 0) + requiredQty
+          );
+          await walk(link.storeProductId, requiredQty, depth + 1);
+        } else {
+          leafConsumption.set(
+            link.storeProductId,
+            (leafConsumption.get(link.storeProductId) || 0) + requiredQty
+          );
+        }
+      }
+    };
+
+    await walk(customProductId, orderedQuantity, 1);
+
+    return { leafConsumption, intermediateKits };
+  }
+
+  // Dá baixa no estoque dos produtos vinculados a um kit (folhas reais + kits
+  // intermediários aninhados) e emite alerta de estoque baixo
   private async consumeLinkedItemsStock(
     customProductId: string,
     orderedQuantity: number,
     storeId: string
   ): Promise<void> {
-    const linkedItems = await this.storeProductCustomRepository.getLinkedItems(
-      customProductId
-    );
+    const { leafConsumption, intermediateKits } =
+      await this.resolveKitStockImpact(customProductId, orderedQuantity);
 
-    for (const link of linkedItems) {
-      const consumed = link.quantity * orderedQuantity;
-      const newLinkedQuantity = link.product.quantity - consumed;
+    for (const [leafId, consumed] of leafConsumption) {
+      const leafProduct = await this.storeProductRepository.findById(leafId);
+      if (!leafProduct) continue;
 
-      await this.storeProductRepository.updatedStock(
-        link.storeProductId,
-        newLinkedQuantity
-      );
+      const newQuantity = leafProduct.quantity - consumed;
+      await this.storeProductRepository.updatedStock(leafId, newQuantity);
 
-      if (newLinkedQuantity <= 5) {
+      if (newQuantity <= 5) {
         emitLowStock(storeId, {
-          productId: link.storeProductId,
-          productName: link.product.name,
-          currentStock: newLinkedQuantity,
+          productId: leafId,
+          productName: leafProduct.name,
+          currentStock: newQuantity,
+        });
+      }
+    }
+
+    for (const [kitId, consumed] of intermediateKits) {
+      const kitProduct = await this.storeProductCustomRepository.findById(
+        kitId
+      );
+      if (!kitProduct) continue;
+
+      const newQuantity = kitProduct.quantity - consumed;
+      await this.storeProductCustomRepository.updatedStock(kitId, newQuantity);
+
+      if (newQuantity <= 5) {
+        emitLowStock(storeId, {
+          productId: kitId,
+          productName: kitProduct.name,
+          currentStock: newQuantity,
         });
       }
     }
   }
 
-  // Devolve o estoque dos produtos vinculados a um kit
+  // Devolve o estoque dos produtos vinculados a um kit (folhas reais + kits
+  // intermediários aninhados)
   private async restoreLinkedItemsStock(
     customProductId: string,
     orderedQuantity: number
   ): Promise<void> {
-    const linkedItems = await this.storeProductCustomRepository.getLinkedItems(
-      customProductId
-    );
+    const { leafConsumption, intermediateKits } =
+      await this.resolveKitStockImpact(customProductId, orderedQuantity);
 
-    for (const link of linkedItems) {
-      const restored = link.quantity * orderedQuantity;
-      const newLinkedQuantity = link.product.quantity + restored;
+    for (const [leafId, restored] of leafConsumption) {
+      const leafProduct = await this.storeProductRepository.findById(leafId);
+      if (!leafProduct) continue;
 
       await this.storeProductRepository.updatedStock(
-        link.storeProductId,
-        newLinkedQuantity
+        leafId,
+        leafProduct.quantity + restored
+      );
+    }
+
+    for (const [kitId, restored] of intermediateKits) {
+      const kitProduct = await this.storeProductCustomRepository.findById(
+        kitId
+      );
+      if (!kitProduct) continue;
+
+      await this.storeProductCustomRepository.updatedStock(
+        kitId,
+        kitProduct.quantity + restored
       );
     }
   }
@@ -224,18 +330,32 @@ export class OrderService {
         );
       }
 
-      // Se for um kit (produto custom), valida o estoque dos produtos vinculados também
+      // Se for um kit (produto custom), valida o estoque dos produtos vinculados também,
+      // resolvendo recursivamente kits aninhados até os produtos-folha reais
       if (isCustom) {
-        const linkedItems = await this.storeProductCustomRepository.getLinkedItems(
-          productId
-        );
+        const { leafConsumption, intermediateKits } =
+          await this.resolveKitStockImpact(productId, item.quantity);
 
-        for (const link of linkedItems) {
-          const requiredQuantity = link.quantity * item.quantity;
+        for (const [leafId, requiredQuantity] of leafConsumption) {
+          const leafProduct = await this.storeProductRepository.findById(
+            leafId
+          );
 
-          if (link.product.quantity < requiredQuantity) {
+          if (!leafProduct || leafProduct.quantity < requiredQuantity) {
             throw new Error(
-              `Insufficient stock for ${link.product.name} (item of kit ${product.name}). Available: ${link.product.quantity}, Requested: ${requiredQuantity}`
+              `Insufficient stock for ${leafProduct?.name ?? leafId} (nested item of kit ${product.name}). Available: ${leafProduct?.quantity ?? 0}, Requested: ${requiredQuantity}`
+            );
+          }
+        }
+
+        for (const [kitId, requiredQuantity] of intermediateKits) {
+          const kitProduct = await this.storeProductCustomRepository.findById(
+            kitId
+          );
+
+          if (!kitProduct || kitProduct.quantity < requiredQuantity) {
+            throw new Error(
+              `Insufficient stock for kit ${kitProduct?.name ?? kitId} (nested inside ${product.name}). Available: ${kitProduct?.quantity ?? 0}, Requested: ${requiredQuantity}`
             );
           }
         }
@@ -289,34 +409,8 @@ export class OrderService {
       orderEntity
     );
 
-    // Atualiza estoque e emite eventos
-    for (const item of preparedItems) {
-      const isCustom = item.productType === "custom";
-      const productId = isCustom
-        ? item.storeProductCustomId
-        : item.storeProductId;
-
-      if (!productId) continue;
-
-      const repository = isCustom
-        ? this.storeProductCustomRepository
-        : this.storeProductRepository;
-
-      const product = await repository.findById(productId);
-      if (!product) continue;
-
-      const newQuantity = product.quantity - item.quantity;
-      await repository.updatedStock(productId, newQuantity);
-
-      // Se for um kit (produto custom), dá baixa também nos produtos vinculados
-      if (isCustom) {
-        await this.consumeLinkedItemsStock(
-          productId,
-          item.quantity,
-          store.id
-        );
-      }
-    }
+    // Atualiza estoque e emite eventos (item de topo + itens vinculados em cascata)
+    await this.applyStockDeduction(preparedItems, store.id);
 
     // Enviar notificações push apenas para o dono da loja
     try {

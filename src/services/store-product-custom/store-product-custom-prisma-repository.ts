@@ -1,21 +1,63 @@
 import { Prisma } from "@/generated/prisma/client";
 import {
+  LinkedItemType,
   LinkedProductInput,
   LinkedProductItem,
   StoreProductCustomRepository,
 } from "./store-product-custom-repository";
 import { StoreProductEntity } from "@/entities/store-products";
 import { prisma } from "@/lib/prisma";
+import { AppError } from "@/lib/AppError";
+
+interface ResolvedLinkedTarget {
+  type: LinkedItemType;
+  id: string;
+}
 
 export class StoreProductCustomPrismaRepository
   implements StoreProductCustomRepository
 {
   constructor() {}
 
+  // Resolve o id genérico de um item vinculado: tenta catálogo normal primeiro,
+  // depois outro produto customizado (kit dentro de kit). Mesmo padrão usado em
+  // OrderService.prepareOrderItems() para resolver o id de um item de pedido.
+  private async resolveLinkedTarget(
+    genericId: string
+  ): Promise<ResolvedLinkedTarget> {
+    const catalogProduct = await prisma.storeProduct.findUnique({
+      where: { id: genericId },
+      select: { id: true },
+    });
+    if (catalogProduct) {
+      return { type: "catalog", id: catalogProduct.id };
+    }
+
+    const customProduct = await prisma.storeProductCustom.findUnique({
+      where: { id: genericId },
+      select: { id: true },
+    });
+    if (customProduct) {
+      return { type: "custom", id: customProduct.id };
+    }
+
+    throw new AppError(`Linked product not found: ${genericId}`, 400);
+  }
+
   async create(
     data: StoreProductEntity,
     linkedItems?: LinkedProductInput[]
   ): Promise<StoreProductEntity> {
+    const resolvedItems =
+      linkedItems && linkedItems.length > 0
+        ? await Promise.all(
+            linkedItems.map(async (item) => ({
+              item,
+              target: await this.resolveLinkedTarget(item.storeProductId),
+            }))
+          )
+        : [];
+
     const product = await prisma.storeProductCustom.create({
       data: {
         name: data.name,
@@ -29,10 +71,14 @@ export class StoreProductCustomPrismaRepository
         category: data.category,
         cost_price: data.costPrice,
         linkedItems:
-          linkedItems && linkedItems.length > 0
+          resolvedItems.length > 0
             ? {
-                create: linkedItems.map((item) => ({
-                  storeProductId: item.storeProductId,
+                create: resolvedItems.map(({ item, target }) => ({
+                  storeProductId:
+                    target.type === "catalog" ? target.id : null,
+                  linkedCustomProductId:
+                    target.type === "custom" ? target.id : null,
+                  linkedItemType: target.type,
                   quantity: item.quantity,
                 })),
               }
@@ -47,14 +93,23 @@ export class StoreProductCustomPrismaRepository
     customProductId: string,
     items: LinkedProductInput[]
   ): Promise<void> {
+    const resolvedItems = await Promise.all(
+      items.map(async (item) => ({
+        item,
+        target: await this.resolveLinkedTarget(item.storeProductId),
+      }))
+    );
+
     await prisma.$transaction([
       prisma.storeProductCustomItem.deleteMany({
         where: { storeProductCustomId: customProductId },
       }),
       prisma.storeProductCustomItem.createMany({
-        data: items.map((item) => ({
+        data: resolvedItems.map(({ item, target }) => ({
           storeProductCustomId: customProductId,
-          storeProductId: item.storeProductId,
+          storeProductId: target.type === "catalog" ? target.id : null,
+          linkedCustomProductId: target.type === "custom" ? target.id : null,
+          linkedItemType: target.type,
           quantity: item.quantity,
         })),
       }),
@@ -64,15 +119,23 @@ export class StoreProductCustomPrismaRepository
   async getLinkedItems(customProductId: string): Promise<LinkedProductItem[]> {
     const items = await prisma.storeProductCustomItem.findMany({
       where: { storeProductCustomId: customProductId },
-      include: { storeProduct: true },
+      include: { storeProduct: true, linkedCustomProduct: true },
     });
 
-    return items.map((item) => ({
-      id: item.id,
-      storeProductId: item.storeProductId,
-      quantity: item.quantity,
-      product: new StoreProductEntity(item.storeProduct),
-    }));
+    return items.map((item) => {
+      const isCustom = item.linkedItemType === "custom";
+      const rawProduct = isCustom ? item.linkedCustomProduct : item.storeProduct;
+
+      return {
+        id: item.id,
+        storeProductId: (isCustom
+          ? item.linkedCustomProductId
+          : item.storeProductId) as string,
+        quantity: item.quantity,
+        itemType: item.linkedItemType as LinkedItemType,
+        product: new StoreProductEntity(rawProduct!),
+      };
+    });
   }
 
   async findById(id: string): Promise<StoreProductEntity | null> {

@@ -1,11 +1,15 @@
 import { StoreProductEntity } from "@/entities/store-products";
 import {
+  LinkedItemType,
   LinkedProductInput,
   LinkedProductItem,
   StoreProductCustomRepository,
 } from "./store-product-custom-repository";
 import { StoreRepository } from "../store/store-repository";
 import { StoreProductRepository } from "../store-product/store-product-repository";
+import { AppError } from "@/lib/AppError";
+
+const MAX_KIT_DEPTH = 20;
 
 export class StoreProductCustomService {
   constructor(
@@ -76,7 +80,18 @@ export class StoreProductCustomService {
     }
 
     if (linkedProducts.length > 0) {
-      await this.validateLinkedProducts(linkedProducts, store.id);
+      const types = await this.validateLinkedProducts(
+        linkedProducts,
+        store.id
+      );
+
+      const customCandidateIds = linkedProducts
+        .filter((_, idx) => types[idx] === "custom")
+        .map((link) => link.storeProductId);
+
+      if (customCandidateIds.length > 0) {
+        await this.assertNoCycle(customProductId, customCandidateIds);
+      }
     }
 
     await this.storeProductCustomRepository.setLinkedItems(
@@ -108,21 +123,99 @@ export class StoreProductCustomService {
     return this.storeProductCustomRepository.getLinkedItems(customProductId);
   }
 
+  // Resolve cada link para "catalog" (StoreProduct) ou "custom" (outro kit),
+  // validando existência e propriedade da loja em ambos os casos. Retorna os
+  // tipos resolvidos, na mesma ordem de `linkedProducts`, para uso posterior
+  // (ex: detecção de ciclo, que só se aplica aos links do tipo "custom").
   private async validateLinkedProducts(
     linkedProducts: LinkedProductInput[],
     storeId: string
-  ): Promise<void> {
+  ): Promise<LinkedItemType[]> {
+    const types: LinkedItemType[] = [];
+
     for (const link of linkedProducts) {
       if (link.quantity < 1) {
-        throw new Error("Linked product quantity must be at least 1");
+        throw new AppError("Linked product quantity must be at least 1", 400);
       }
 
-      const product: StoreProductEntity | null =
+      const catalogProduct: StoreProductEntity | null =
         await this.storeProductRepository.findById(link.storeProductId);
 
-      if (!product || product.storeId !== storeId) {
-        throw new Error(`Linked product not found: ${link.storeProductId}`);
+      if (catalogProduct) {
+        if (catalogProduct.storeId !== storeId) {
+          throw new AppError(
+            `Linked product not found: ${link.storeProductId}`,
+            400
+          );
+        }
+        types.push("catalog");
+        continue;
       }
+
+      const customProduct =
+        await this.storeProductCustomRepository.findById(
+          link.storeProductId
+        );
+
+      if (!customProduct || customProduct.storeId !== storeId) {
+        throw new AppError(
+          `Linked product not found: ${link.storeProductId}`,
+          400
+        );
+      }
+
+      types.push("custom");
+    }
+
+    return types;
+  }
+
+  // BFS a partir dos kits candidatos (tipo "custom") do payload, seguindo somente
+  // arestas do tipo "custom", para detectar se algum caminho leva de volta a `kitId`
+  // (ciclo direto ou indireto). `visited` também protege contra dados já corrompidos
+  // (ciclo residual) e `MAX_KIT_DEPTH` evita percorrer indefinidamente em caso de bug.
+  private async assertNoCycle(
+    kitId: string,
+    customCandidateIds: string[]
+  ): Promise<void> {
+    const visited = new Set<string>();
+    let frontier = customCandidateIds;
+    let depth = 0;
+
+    while (frontier.length > 0) {
+      if (frontier.includes(kitId)) {
+        throw new AppError(
+          "Circular kit reference detected: a kit cannot contain itself, directly or indirectly",
+          400
+        );
+      }
+
+      depth += 1;
+      if (depth > MAX_KIT_DEPTH) {
+        throw new AppError(
+          `Kit nesting is too deep (max ${MAX_KIT_DEPTH} levels)`,
+          400
+        );
+      }
+
+      const nextFrontier: string[] = [];
+
+      for (const currentId of frontier) {
+        if (visited.has(currentId)) continue;
+        visited.add(currentId);
+
+        const children = await this.storeProductCustomRepository.getLinkedItems(
+          currentId
+        );
+
+        for (const child of children) {
+          if (child.itemType === "custom") {
+            nextFrontier.push(child.storeProductId);
+          }
+        }
+      }
+
+      frontier = nextFrontier;
     }
   }
 }
